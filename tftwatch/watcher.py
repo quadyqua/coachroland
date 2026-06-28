@@ -54,10 +54,13 @@ def _grab_full(sct, monitor) -> Image.Image:
 
 
 def _signature(full_img: Image.Image) -> np.ndarray:
-    """Tiny grayscale fingerprint of the panel region for cheap change detection."""
-    panel = _crop_region(full_img, RIGHT_PANEL)
-    small = panel.convert("L").resize((24, 64))
-    return np.asarray(small, dtype=np.int16)
+    """Tiny grayscale fingerprint for cheap change detection. Includes the scoreboard
+    panel AND the bench band, so buying/selling a unit (bench change) also triggers a
+    fresh read -> Coach stays aware of your bench, not just the lobby."""
+    panel = _crop_region(full_img, RIGHT_PANEL).convert("L").resize((24, 64))
+    bench = _crop_region(full_img, localvision.BENCH_REGION).convert("L").resize((64, 8))
+    return np.concatenate([np.asarray(panel, dtype=np.int16).ravel(),
+                           np.asarray(bench, dtype=np.int16).ravel()])
 
 
 def _changed(a, b, threshold: float = 6.0) -> bool:
@@ -272,7 +275,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                             if on_update:
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "game_over",
                                            "data": None, "advice": [], "positioning": [], "comp": None,
-                                           "shop": [], "econ": None, "items": [],
+                                           "shop": [], "econ": None, "items": [], "bench": [],
                                            "gold": None, "level": None})
                             else:
                                 print(f"[{time.strftime('%H:%M:%S')}] Game over — cleared session "
@@ -317,17 +320,28 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         except Exception as e:
                             print(f"  (trait read failed: {e})")
 
-                    # Board read feeds BOTH positioning and "replace this" owned-unit advice.
-                    positioning, owned_units = [], None
+                    # Bench is read FREE every cycle by portrait (icon match) -> always know
+                    # what you own, so "pairs with a unit you have" fires without the paid board.
+                    owned_units, bench_view = [], []
+                    if local_eyes:
+                        try:
+                            bench_view = localvision.read_bench_pil(full).get("bench", [])
+                            owned_units = [b["name"] for b in bench_view]
+                        except Exception as e:
+                            print(f"  (bench read failed: {e})")
+
+                    # Board read adds on-board units + positioning (paid; bench already covered above).
+                    positioning = []
                     if board:
                         try:
                             board_read = read_board_pil(full, model=model)
                             positioning = coach.positioning(board_read)
-                            owned_units = [u.get("name") for u in (board_read.get("units") or [])
-                                           if u.get("name")]
-                            owned_units += [b for b in (board_read.get("bench") or []) if b]  # bench -> pairs
+                            owned_units += [u.get("name") for u in (board_read.get("units") or [])
+                                            if u.get("name")]
+                            owned_units += [b for b in (board_read.get("bench") or []) if b]
                         except Exception as e:
                             print(f"  (board read failed: {e})")
+                    owned_units = owned_units or None
 
                     # A live God/augment pick on screen -> advise immediately (skip throttle).
                     offered = None
@@ -394,7 +408,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         on_update({"ts": stamp, "event": "read", "data": data,
                                    "advice": recs, "positioning": positioning, "comp": last_comp,
                                    "shop": shop_view, "econ": (econ[0] if econ else None),
-                                   "items": item_view,
+                                   "items": item_view, "bench": bench_view,
                                    "gold": (self_read or {}).get("gold"),
                                    "level": (self_read or {}).get("level")})
                     elif recs:

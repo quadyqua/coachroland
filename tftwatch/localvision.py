@@ -14,7 +14,7 @@ Everything text (names, HP, spiked champ) reads locally and free.
 import numpy as np
 from PIL import Image
 
-from . import cdragon
+from . import cdragon, icons
 
 RIGHT_PANEL = (0.78, 0.08, 1.0, 0.97)
 UPSCALE = 2
@@ -197,9 +197,55 @@ def read_items(image_path: str, crop=ITEM_REGION) -> dict:
     return read_items_pil(Image.open(image_path).convert("RGB"), crop)
 
 
+# ---- bench: which units you own, by PORTRAIT (free icon match, no OCR) ----------
+# Recognizing the tile tells us the champion AND its cost (cdragon), so this is the
+# free, always-on "what's on my bench" read that powers pair detection.
+BENCH_REGION = (0.09, 0.66, 0.91, 0.75)   # the 9-slot bench row; tune on a real frame
+BENCH_SLOTS = 9
+
+
+def read_bench_pil(img: "Image.Image", crop=BENCH_REGION, slots=BENCH_SLOTS) -> dict:
+    """{bench:[{name,cost,slot}]} — champions recognized on the bench by portrait."""
+    w, h = img.size
+    l, t, r, b = crop
+    band = img.crop((int(w * l), int(h * t), int(w * r), int(h * b))).convert("RGB")
+    sw = band.width / slots
+    out = []
+    for i in range(slots):
+        cell = band.crop((int(i * sw), 0, int((i + 1) * sw), band.height))
+        if np.asarray(cell, dtype=np.float32).std() < 12:   # ~uniform -> empty slot
+            continue
+        m = icons.identify(cell)
+        if m:
+            out.append({"name": m["name"], "cost": m["cost"], "slot": i})
+    return {"bench": out}
+
+
+def read_bench(image_path: str, crop=BENCH_REGION, slots=BENCH_SLOTS) -> dict:
+    return read_bench_pil(Image.open(image_path).convert("RGB"), crop, slots)
+
+
 if __name__ == "__main__":
     import sys
     import json
-    path = sys.argv[1] if len(sys.argv) > 1 else "fixtures/lobby_starups_3-3.png"
-    data = read_lobby(path)
-    print(json.dumps(data, ensure_ascii=True, indent=2))
+    args = sys.argv[1:]
+    if args and args[0] == "bench":
+        # Calibration: dump the bench band + each slot's BEST match & score (no threshold),
+        # so the region and accept-threshold can be tuned against a real in-game frame.
+        path = args[1] if len(args) > 1 else "fixtures/lobby_starups_3-3.png"
+        img = Image.open(path).convert("RGB")
+        w, h = img.size
+        l, t, r, b = BENCH_REGION
+        band = img.crop((int(w * l), int(h * t), int(w * r), int(h * b)))
+        band.save("bench_band.png")
+        print(f"saved cropped bench band -> bench_band.png  (check it frames the 9 slots)")
+        sw = band.width / BENCH_SLOTS
+        for i in range(BENCH_SLOTS):
+            cell = band.crop((int(i * sw), 0, int((i + 1) * sw), band.height))
+            std = float(np.asarray(cell, dtype=np.float32).std())
+            m = icons.identify(cell, threshold=0.0)
+            print(f"  slot {i}: std={std:5.1f}  best={m['name'] if m else '?':16} "
+                  f"score={m['score'] if m else 0}")
+    else:
+        path = args[0] if args else "fixtures/lobby_starups_3-3.png"
+        print(json.dumps(read_lobby(path), ensure_ascii=True, indent=2))

@@ -1,0 +1,73 @@
+"""Free champion recognition by portrait — no OCR, no API.
+
+CDragon ships every champion's HUD square tile (the same art shown on the bench
+and board). We cache those tiles once, then match an on-screen slot crop against
+them by normalized cross-correlation. Recognizing the portrait gives us the name
+AND the cost (from cdragon), so the bench can be read live at $0.
+
+Region/threshold need tuning against a real in-game frame; identify() is robust to
+brightness (zero-mean, unit-norm vectors) but not to heavy overlays.
+"""
+from pathlib import Path
+import urllib.request
+
+import numpy as np
+from PIL import Image
+
+from . import cdragon
+
+CACHE = Path(__file__).resolve().parent.parent / ".cache" / "icons"
+SIZE = 32                 # templates + crops compared at this resolution
+MATCH_THRESHOLD = 0.50    # min cross-correlation to accept a match (tune on a real frame)
+
+_templates = None         # [(name, cost, vec)] loaded once
+
+
+def _norm_vec(pil: "Image.Image") -> np.ndarray:
+    """SIZE x SIZE RGB -> zero-mean unit-norm vector (brightness-robust correlation)."""
+    a = np.asarray(pil.convert("RGB").resize((SIZE, SIZE)), dtype=np.float32).ravel()
+    a -= a.mean()
+    n = np.linalg.norm(a)
+    return a / n if n > 1e-6 else a
+
+
+def _fetch(url: str, dest: Path) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "tftwatch"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        dest.write_bytes(r.read())
+
+
+def _load_templates():
+    global _templates
+    if _templates is not None:
+        return _templates
+    _templates = []
+    CACHE.mkdir(parents=True, exist_ok=True)
+    for c in cdragon.current_set_champions():
+        f = CACHE / f"{c['api'] or c['name']}.png"
+        if not f.exists():
+            try:
+                _fetch(c["tile_url"], f)
+            except Exception:
+                continue
+        try:
+            _templates.append((c["name"], c["cost"], _norm_vec(Image.open(f))))
+        except Exception:
+            continue
+    return _templates
+
+
+def identify(pil: "Image.Image", threshold: float = MATCH_THRESHOLD):
+    """Best {name, cost, score} for a champion-portrait crop, or None below threshold."""
+    tpls = _load_templates()
+    if not tpls:
+        return None
+    v = _norm_vec(pil)
+    best, score = None, -1.0
+    for name, cost, vec in tpls:
+        s = float(np.dot(v, vec))
+        if s > score:
+            best, score = (name, cost), s
+    if best is None or score < threshold:
+        return None
+    return {"name": best[0], "cost": best[1], "score": round(score, 3)}

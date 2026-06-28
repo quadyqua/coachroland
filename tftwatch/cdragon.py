@@ -120,6 +120,33 @@ def current_roster() -> list[str]:
     return _roster
 
 
+_ASSET_BASE = "https://raw.communitydragon.org/latest/game/"
+
+
+def _tile_url(tile_icon: str) -> str:
+    """CDragon serves the .tex HUD tile as a .png at a lowercased game-asset path."""
+    return _ASSET_BASE + tile_icon.lower().replace(".tex", ".png")
+
+
+_set_champs: list[dict] = []
+
+
+def current_set_champions() -> list[dict]:
+    """Current-set playable champions: [{name, cost, api, tile_url}] for icon matching."""
+    if _set_champs:
+        return _set_champs
+    try:
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        latest = max(data.get("setData", []), key=lambda s: s.get("number") or 0)
+        for c in latest.get("champions", []):
+            if c.get("name") and c.get("cost") and c.get("traits") and c.get("tileIcon"):
+                _set_champs.append({"name": c["name"], "cost": c["cost"],
+                                    "api": c.get("apiName"), "tile_url": _tile_url(c["tileIcon"])})
+    except Exception:
+        pass
+    return _set_champs
+
+
 def champ_name(api: str) -> str:
     _load()
     return _champ_name.get(api) or humanize(api)

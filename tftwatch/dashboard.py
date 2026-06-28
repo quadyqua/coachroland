@@ -21,7 +21,7 @@ from . import compguide
 load_dotenv()
 
 STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
-         "shop": [], "econ": None, "items": [], "gold": None, "level": None}
+         "shop": [], "econ": None, "items": [], "bench": [], "gold": None, "level": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -79,6 +79,11 @@ _SAMPLE = {
         {"name": "B.F. Sword", "take": True, "carry": "Jhin"},
         {"name": "Tear of the Goddess", "take": False, "carry": "Jhin"},
         {"name": "Recurve Bow", "take": True, "carry": "Jhin"},
+    ],
+    "bench": [
+        {"name": "Talon", "cost": 1, "slot": 0},
+        {"name": "Talon", "cost": 1, "slot": 1},
+        {"name": "Caitlyn", "cost": 1, "slot": 2},
     ],
     "mode": "doubleup",
     "data": {
@@ -257,6 +262,9 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
   <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div>
   <div id="econ"></div></div>
 
+<div class="card" id="benchcard" style="display:none"><h2>Your bench <span class="shopmeta">&middot; recognized by portrait</span></h2>
+  <div id="bench" class="shop"></div></div>
+
 <div class="card" id="itemcard" style="display:none"><h2>Items offered &middot; take for your carry</h2>
   <div id="items" class="shop"></div></div>
 
@@ -333,6 +341,18 @@ function renderShop(s){
   document.getElementById("econ").innerHTML = s.econ
     ? '<div class="econ"><b>'+s.econ.text+'</b> — <span style="color:var(--mut)">'+(s.econ.why||'')+'</span></div>' : '';
 }
+function renderBench(s){
+  var bn=s.bench||[];
+  var card=document.getElementById("benchcard");
+  if(card){ card.style.display = bn.length ? '' : 'none'; }
+  if(!bn.length) return;
+  var counts={}; bn.forEach(function(b){counts[b.name]=(counts[b.name]||0)+1;});
+  document.getElementById("bench").innerHTML = bn.map(function(b){
+    var pair = counts[b.name]>=2;
+    return '<div class="'+(pair?'slot buy':'slot')+'"><div class="sn">'+(b.name||'?')+'</div><div class="sc">'
+      +(b.cost?b.cost+'g':'')+(pair?' &middot; pair':'')+'</div></div>';
+  }).join('');
+}
 function renderItems(s){
   var its=s.items||[];
   var card=document.getElementById("itemcard");
@@ -348,6 +368,7 @@ function render(s){
   if(s.event==="game_over"){ deadlines={}; }   // clear stale clocks between games
   document.getElementById("comp").innerHTML=renderComp(s.comp);
   renderShop(s);
+  renderBench(s);
   renderItems(s);
   document.getElementById("sub").textContent =
     (s.event==="game_over"?"game over — session cleared":(s.ts?("updated "+s.ts):"waiting"));
