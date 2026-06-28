@@ -277,14 +277,20 @@ BENCH_REGION = (0.12, 0.655, 0.58, 0.745)   # 9-slot bench row (LOCATION verifie
 BENCH_SLOTS = 9
 
 
-def read_bench_pil(img: "Image.Image", crop=BENCH_REGION, slots=BENCH_SLOTS) -> dict:
-    """{bench:[{name,cost,slot}]} — champions recognized on the bench by portrait."""
+def read_bench_pil(img: "Image.Image", crop=BENCH_REGION, slots=BENCH_SLOTS,
+                   doubleup=False) -> dict:
+    """{bench:[{name,cost,slot}]} — champions recognized on the bench by portrait.
+
+    In Double Up the 9th (rightmost) bench slot is the Teamwork Cannon, not a unit
+    (confirmed by watching a live Double Up game), so doubleup=True skips it."""
     w, h = img.size
     l, t, r, b = crop
     band = img.crop((int(w * l), int(h * t), int(w * r), int(h * b))).convert("RGB")
     sw = band.width / slots
     out = []
     for i in range(slots):
+        if doubleup and i == slots - 1:        # 9th slot = Teamwork Cannon
+            continue
         cell = band.crop((int(i * sw), 0, int((i + 1) * sw), band.height))
         if np.asarray(cell, dtype=np.float32).std() < 12:   # ~uniform -> empty slot
             continue
@@ -295,8 +301,8 @@ def read_bench_pil(img: "Image.Image", crop=BENCH_REGION, slots=BENCH_SLOTS) -> 
     return {"bench": out}
 
 
-def read_bench(image_path: str, crop=BENCH_REGION, slots=BENCH_SLOTS) -> dict:
-    return read_bench_pil(Image.open(image_path).convert("RGB"), crop, slots)
+def read_bench(image_path: str, crop=BENCH_REGION, slots=BENCH_SLOTS, doubleup=False) -> dict:
+    return read_bench_pil(Image.open(image_path).convert("RGB"), crop, slots, doubleup)
 
 
 if __name__ == "__main__":
