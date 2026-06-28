@@ -164,8 +164,8 @@ def main() -> None:
 INDEX_HTML = """<!doctype html><html><head><meta charset="utf-8">
 <title>Coach Roland</title><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root{--bg:#0f0f14;--panel:#1a1a22;--panel2:#262631;--line:#2c2c38;--tx:#e8e8ee;--mut:#9a9aa8;
---danger:#ff6b6b;--dbg:#2a1717;--warn:#ffb84d;--wbg:#2a2113;--acc:#6cf08a;--abg:#16271c;--blue:#5aa9ff;}
+:root{--bg:#1c1d21;--panel:#23242a;--panel2:#2b2c33;--line:#37383f;--tx:#f1e3e4;--mut:#ccbcbc;
+--danger:#cf8d92;--dbg:#2e2428;--warn:#a288a6;--wbg:#2a2430;--acc:#a288a6;--abg:#26262d;--blue:#bb9bb0;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 "Segoe UI",system-ui,sans-serif;padding:18px;}
 .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
@@ -180,23 +180,23 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .card h2{margin:0 0 10px;font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .rec{border-radius:11px;padding:12px 14px;margin-bottom:10px;}
-.a-danger{background:var(--dbg);border:1px solid #5a2a2a;}
-.a-warn{background:var(--wbg);border:1px solid #5a4420;}
-.a-info{background:var(--abg);border:1px solid #265036;}
+.a-danger{background:var(--dbg);border:1px solid #5a3a3e;}
+.a-warn{background:var(--wbg);border:1px solid #4e4152;}
+.a-info{background:var(--abg);border:1px solid #3a3a44;}
 .rtext{font-weight:600;font-size:15px;margin-bottom:5px;}
-.a-danger .rtext{color:#ffc6c6;}
-.a-warn .rtext{color:#ffdca0;}
-.a-info .rtext{color:#c4f0d4;}
-.a-buy{background:#26210f;border:1px solid #6a5a22;}
-.a-buy .rtext{color:#ffe08a;}
-.badge-buy{background:#caa23a;color:#1a1405;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;margin-right:8px;letter-spacing:.03em;}
+.a-danger .rtext{color:#e8b6ba;}
+.a-warn .rtext{color:#d8bcd6;}
+.a-info .rtext{color:#d6cccd;}
+.a-buy{background:#2a2430;border:1px solid #5e4a62;}
+.a-buy .rtext{color:#d9bcd9;}
+.badge-buy{background:#a288a6;color:#1c1d21;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;margin-right:8px;letter-spacing:.03em;}
 /* Active, time-boxed choice (2 Gods / 3 augments) — pinned to top, loud, pulsing. */
-.a-choice{background:#2c2510;border:2px solid var(--warn);
-  box-shadow:0 0 0 1px var(--warn),0 0 18px rgba(255,184,77,.30);animation:pulse 1.3s ease-in-out infinite;}
-.a-choice .rtext{color:#ffe6a3;font-size:17px;}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 1px var(--warn),0 0 8px rgba(255,184,77,.20);}
-  50%{box-shadow:0 0 0 1px var(--warn),0 0 24px rgba(255,184,77,.55);}}
-.badge-choice{background:var(--warn);color:#1a1405;font-size:11px;font-weight:800;padding:2px 8px;
+.a-choice{background:#2a2430;border:2px solid var(--warn);
+  box-shadow:0 0 0 1px var(--warn),0 0 18px rgba(162,136,166,.35);animation:pulse 1.3s ease-in-out infinite;}
+.a-choice .rtext{color:#e7d0e7;font-size:17px;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 1px var(--warn),0 0 8px rgba(162,136,166,.20);}
+  50%{box-shadow:0 0 0 1px var(--warn),0 0 24px rgba(162,136,166,.6);}}
+.badge-choice{background:var(--warn);color:#1c1d21;font-size:11px;font-weight:800;padding:2px 8px;
   border-radius:6px;margin-right:8px;letter-spacing:.04em;}
 .timer{color:var(--warn);font-weight:800;}
 .rwhy{font-size:14px;line-height:1.55;color:var(--tx);opacity:.92;}
@@ -204,16 +204,16 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;}
 .row:last-child{border-bottom:0;}
 .pill{font-size:11px;padding:2px 8px;border-radius:7px;}
-.p-crit{background:var(--dbg);color:#ffb0b0;}
-.p-low{background:var(--wbg);color:#ffd28a;}
+.p-crit{background:var(--dbg);color:#e8b0b4;}
+.p-low{background:var(--wbg);color:#d8bcd6;}
 .spike{color:var(--blue);}
 .me{color:var(--acc);font-weight:600;}
 .mate{color:var(--blue);font-weight:600;}
 .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-right:9px;flex:none;}
 .empty{color:var(--mut);font-size:13px;}
 /* Your Comp panel — the "what am I building" board. */
-.compcard{background:linear-gradient(180deg,#171a26,#14141c);border:1px solid #2f3550;}
-.compname{font-size:22px;font-weight:700;color:#cfe0ff;}
+.compcard{background:#23242a;border:1px solid #3a3a44;}
+.compname{font-size:22px;font-weight:700;color:#e7d6e7;}
 .compname .ps{font-size:12px;font-weight:600;color:var(--mut);margin-left:8px;text-transform:uppercase;letter-spacing:.05em;}
 .compsub{font-size:13px;color:var(--mut);margin:3px 0 11px;}
 .compsub b{color:var(--tx);}
@@ -221,27 +221,27 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .approx{color:var(--warn);text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;}
 .board{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
 .unit{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--tx);}
-.unit.carry{background:#2a2410;border-color:var(--warn);color:#ffe08a;font-weight:700;}
+.unit.carry{background:#2a2430;border-color:var(--warn);color:#d9bcd9;font-weight:700;}
 .items{font-size:13px;color:var(--blue);margin-bottom:8px;}
 .plan{font-size:13px;color:var(--tx);opacity:.9;border-top:1px solid var(--line);padding-top:8px;}
 /* Shop strip — buy-worthy slots lit up, can't-afford slots flagged to LOCK, rest dim. */
 .shop{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
-.slot{background:#1a1a22;border:1px solid var(--line);border-radius:9px;padding:9px 6px;text-align:center;}
+.slot{background:#1f2026;border:1px solid var(--line);border-radius:9px;padding:9px 6px;text-align:center;}
 .slot .sn{font-size:13px;color:var(--tx);}
 .slot .sc{font-size:11px;color:var(--mut);margin-top:2px;}
 .slot.dim{opacity:.45;}
-.slot.buy{background:#20200f;border:2px solid var(--warn);}
-.slot.buy .sn{color:#ffe08a;font-weight:700;}
-.slot.buy .sc{color:#caa23a;}
-.slot.lock{background:#16222e;border:2px solid var(--blue);}
-.slot.lock .sn{color:#cfe6ff;font-weight:700;}
-.slot.lock .sc{color:#9fc4e8;}
-.slot.give{background:#102420;border:2px solid #2bb88a;}
-.slot.give .sn{color:#9af0cf;font-weight:700;}
-.slot.give .sc{color:#5bd0a6;}
+.slot.buy{background:#2a2430;border:2px solid var(--acc);}
+.slot.buy .sn{color:#d9bcd9;font-weight:700;}
+.slot.buy .sc{color:#a288a6;}
+.slot.lock{background:#26262a;border:2px solid var(--mut);}
+.slot.lock .sn{color:#e6dcdc;font-weight:700;}
+.slot.lock .sc{color:#ccbcbc;}
+.slot.give{background:#2c2731;border:2px solid var(--blue);}
+.slot.give .sn{color:#d8bcd6;font-weight:700;}
+.slot.give .sc{color:#bb9bb0;}
 .shopmeta{color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500;}
-.econ{margin-top:11px;background:#16222e;border:1px solid #2f5a7a;border-radius:10px;padding:10px 12px;font-size:13px;}
-.econ b{color:#cfe6ff;}
+.econ{margin-top:11px;background:#26262d;border:1px solid #3a3a44;border-radius:10px;padding:10px 12px;font-size:13px;}
+.econ b{color:#d8bcd6;}
 @media(max-width:760px){.grid{grid-template-columns:1fr;}}
 </style></head><body>
 <div class="head">
