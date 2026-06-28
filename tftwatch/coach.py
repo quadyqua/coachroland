@@ -498,6 +498,26 @@ class CoachRoland:
                      "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll at "
                      "level 8 (around stage 4-1).", "info")]
 
+    def comp_progress(self, comp, owned) -> list[dict]:
+        """Shopping list: which of your comp's core units you have (inferred) vs still need.
+        Complements the shop strip — that shows what's available now; this shows the goal."""
+        if not comp:
+            return []
+        board = comp.get("board") or comp.get("final_board") or comp.get("early_units") or []
+        if not board:
+            return []
+        have = {o.lower() for o in (owned or [])}
+        got = [u for u in board if u.lower() in have]
+        need = [u for u in board if u.lower() not in have]
+        name = comp.get("name") or "your comp"
+        if not need:
+            return [_rec(f"Core board complete ({len(got)}/{len(board)})",
+                         f"You've got every core unit for {name} — now focus on upgrades (2★/3★), "
+                         f"items, and positioning.", "info")]
+        return [_rec(f"Comp progress {len(got)}/{len(board)} — hunt {', '.join(need[:4])}",
+                     f"For {name}: have {', '.join(got) or 'none yet'}. Still need {', '.join(need)}. "
+                     f"Prioritize these in shops and rolls.", "info")]
+
     def trait_advice(self, traits, max_recs=2) -> list[dict]:
         """Flag active traits that are ONE unit from their next breakpoint — a power spike
         you can often grab cheaply. Uses your live trait counts + CDragon breakpoints."""

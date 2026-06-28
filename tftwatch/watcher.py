@@ -417,6 +417,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     if not brain_on and offered and offered.get("kind") == "god" and offered.get("options"):
                         recs = coach.choose_god(offered["options"],
                                                 (last_comp or {}).get("playstyle") or "flex") + recs
+                    if last_comp and owned_units:    # shopping list from inferred-owned units
+                        recs = recs + coach.comp_progress(last_comp, owned_units)
 
                     shop_view = (coach.shop_plan(self_read.get("shop"), last_comp,
                                                  self_read.get("gold"), partner_comp=partner_detail,

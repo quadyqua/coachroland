@@ -108,6 +108,15 @@ def test_postgame_review_summary():
     assert any("Placed 3" in t for t in tk) and any("Jhin" in t for t in tk)
 
 
+def test_comp_progress_shopping_list():
+    comp = {"name": "Test", "board": ["Jhin", "Xayah", "Aurora", "Rakan"]}
+    r = coach.comp_progress(comp, owned=["Jhin", "Aurora"])[0]["text"]
+    assert "2/4" in r and "Xayah" in r and "Rakan" in r
+    done = coach.comp_progress(comp, owned=["Jhin", "Xayah", "Aurora", "Rakan"])[0]["text"]
+    assert "complete" in done.lower()
+    assert coach.comp_progress(None, ["Jhin"]) == []
+
+
 def test_purchase_tracker_infers_buys():
     from tftwatch.tracker import PurchaseTracker
     t = PurchaseTracker()
