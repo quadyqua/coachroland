@@ -127,11 +127,11 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="your line (compguide key or carry name) -> contest-aware advice")
     p.add_argument("--partner", metavar="NAME", help="Double Up partner's name")
     p.add_argument("--partner-comp", metavar="KEY|CARRY", help="partner's line")
-    p.add_argument("--board", action="store_true", help="also read your board for positioning (extra vision call)")
-    p.add_argument("--augments", action="store_true", help="also read your active augments (extra vision call)")
-    p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
-    p.add_argument("--items", action="store_true", help="read the item-choice screen -> highlight which go on your carry")
-    p.add_argument("--rules-only", action="store_true", help="live: deterministic rules coach, no LLM brain")
+    p.add_argument("--board", action="store_true", help="also read your board for positioning (PAID gpt-4o — positioning isn't free yet)")
+    p.add_argument("--augments", action="store_true", help="also read your augment choices (free, local icon match)")
+    p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (free, local)")
+    p.add_argument("--items", action="store_true", help="read the item-choice screen -> highlight carry items (free, local)")
+    p.add_argument("--rules-only", action="store_true", help="(deprecated — the free rules coach is the default now)")
     return p
 
 
@@ -160,7 +160,7 @@ def main() -> None:
             target=lambda: watch(on_update=_on_update, comp_key=args.comp,
                                  partner_name=args.partner, partner_comp_key=args.partner_comp,
                                  board=args.board, augments=args.augments, shop=args.shop,
-                                 items=args.items, use_brain=not args.rules_only),
+                                 items=args.items, use_brain=False),   # live dashboard = free rules coach
             daemon=True).start()
         print("Live — open http://127.0.0.1:8765  (drag to monitor 2, fullscreen). Ctrl+C to stop.")
     app.run(host="127.0.0.1", port=8765, debug=False)

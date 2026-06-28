@@ -147,6 +147,44 @@ def current_set_champions() -> list[dict]:
     return _set_champs
 
 
+_set_items: list[dict] = []
+_set_augments: list[dict] = []
+
+
+def current_set_items() -> list[dict]:
+    """Standard item pool (components + completed) as [{name, api, icon_url}] for matching
+    offered items by icon. Restricted to TFT_Item_* so we don't match 3000 odd assets."""
+    if _set_items:
+        return _set_items
+    try:
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        for it in data.get("items", []):
+            api = it.get("apiName") or ""
+            if it.get("name") and it.get("icon") and api.startswith("TFT_Item_"):
+                _set_items.append({"name": it["name"], "api": api, "icon_url": _tile_url(it["icon"])})
+    except Exception:
+        pass
+    return _set_items
+
+
+def current_set_augments() -> list[dict]:
+    """Current-set augments as [{name, api, icon_url}] for matching the 3 offered by icon."""
+    if _set_augments:
+        return _set_augments
+    try:
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        num = max(data.get("setData", []), key=lambda s: s.get("number") or 0).get("number")
+        pref = f"tft{num}"
+        for it in data.get("items", []):
+            api = (it.get("apiName") or "").lower()
+            if it.get("name") and it.get("icon") and "augment" in api and api.startswith(pref):
+                _set_augments.append({"name": it["name"], "api": it["apiName"],
+                                      "icon_url": _tile_url(it["icon"])})
+    except Exception:
+        pass
+    return _set_augments
+
+
 def champ_name(api: str) -> str:
     _load()
     return _champ_name.get(api) or humanize(api)

@@ -96,3 +96,47 @@ def identify(pil: "Image.Image", threshold: float = MATCH_THRESHOLD):
     if best is None or score < threshold:
         return None
     return {"name": best[0], "cost": best[1], "score": round(score, 3)}
+
+
+# ---- generic icon matching (items, augments) — same technique, free -------------
+_KIND: dict = {}   # kind -> [(name, vec)]
+
+_SOURCES = {
+    "item": lambda: [(i["name"], i["icon_url"], i["api"]) for i in cdragon.current_set_items()],
+    "augment": lambda: [(a["name"], a["icon_url"], a["api"]) for a in cdragon.current_set_augments()],
+}
+
+
+def _load_kind(kind: str):
+    if kind in _KIND:
+        return _KIND[kind]
+    out = []
+    d = CACHE / kind
+    d.mkdir(parents=True, exist_ok=True)
+    for name, url, key in _SOURCES[kind]():
+        f = d / f"{key}.png"
+        if not f.exists():
+            try:
+                _fetch(url, f)
+            except Exception:
+                continue
+        try:
+            out.append((name, _norm_vec(Image.open(f))))
+        except Exception:
+            continue
+    _KIND[kind] = out
+    return out
+
+
+def identify_kind(pil: "Image.Image", kind: str, threshold: float = 0.45):
+    """Best {name, score} for an item/augment icon crop, or None below threshold."""
+    tpls = _load_kind(kind)
+    if not tpls:
+        return None
+    v = _norm_vec(pil)
+    best, score = None, -1.0
+    for name, vec in tpls:
+        s = float(np.dot(v, vec))
+        if s > score:
+            best, score = name, s
+    return {"name": best, "score": round(score, 3)} if best and score >= threshold else None

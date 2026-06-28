@@ -195,20 +195,50 @@ def read_stage(image_path: str, crop=STAGE_REGION) -> dict:
 
 
 # ---- item-choice screen (armory / anvil): which items are offered --------------
-# Items are icon-based and names are often multi-word, so this is best-effort text
-# capture; coach.item_choice fuzzy-matches the fragments against the carry's build.
-# Needs tuning on a real item-choice screenshot; region is a center guess.
+# Items are icons -> recognize them by icon (free), same technique as champions.
+# Region/slot count need tuning on a real item-choice frame (see calibrate CLI).
 ITEM_REGION = (0.18, 0.28, 0.82, 0.74)
+ITEM_SLOTS = 5
 
 
-def read_items_pil(img: "Image.Image", crop=ITEM_REGION) -> dict:
-    """{items:[name fragments]} — text detected on an item-choice screen (free OCR)."""
-    boxes = _boxes(_crop(img, crop))
-    return {"items": [b["text"] for b in boxes if sum(c.isalpha() for c in b["text"]) >= 3]}
+def _slots_identify(img, crop, slots, kind):
+    """Split a choice row into slots and icon-match each -> list of names."""
+    w, h = img.size
+    l, t, r, b = crop
+    band = img.crop((int(w * l), int(h * t), int(w * r), int(h * b))).convert("RGB")
+    sw = band.width / slots
+    out = []
+    for i in range(slots):
+        cell = band.crop((int(i * sw), 0, int((i + 1) * sw), band.height))
+        if np.asarray(cell, dtype=np.float32).std() < 12:   # ~uniform -> empty
+            continue
+        m = icons.identify_kind(cell, kind)
+        if m:
+            out.append(m["name"])
+    return out
 
 
-def read_items(image_path: str, crop=ITEM_REGION) -> dict:
-    return read_items_pil(Image.open(image_path).convert("RGB"), crop)
+def read_items_pil(img: "Image.Image", crop=ITEM_REGION, slots=ITEM_SLOTS) -> dict:
+    """{items:[name]} — offered items recognized by icon (free)."""
+    return {"items": _slots_identify(img, crop, slots, "item")}
+
+
+def read_items(image_path: str, crop=ITEM_REGION, slots=ITEM_SLOTS) -> dict:
+    return read_items_pil(Image.open(image_path).convert("RGB"), crop, slots)
+
+
+# ---- augment choice (3 cards): recognize by icon (free) ------------------------
+AUGMENT_REGION = (0.18, 0.30, 0.82, 0.62)
+AUGMENT_SLOTS = 3
+
+
+def read_augments_pil(img: "Image.Image", crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> dict:
+    """{augments:[name]} — the 3 offered augments recognized by icon (free)."""
+    return {"augments": _slots_identify(img, crop, slots, "augment")}
+
+
+def read_augments(image_path: str, crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> dict:
+    return read_augments_pil(Image.open(image_path).convert("RGB"), crop, slots)
 
 
 # ---- bench: which units you own, by PORTRAIT (free icon match, no OCR) ----------

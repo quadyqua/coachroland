@@ -206,7 +206,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
           model: str = "gpt-4o", on_update=None,
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
-          offers: bool = False, items: bool = False, use_brain: bool = True,
+          offers: bool = False, items: bool = False, use_brain: bool = False,
           brain_gap: float = 18.0, local_eyes: bool = True) -> None:
     """Watch the panel; read + coach when it changes and settles.
 
@@ -297,7 +297,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     augs = []
                     if augments:
                         try:
-                            augs = read_augments_pil(full, model=model).get("augments", [])
+                            augs = (localvision.read_augments_pil(full) if local_eyes
+                                    else read_augments_pil(full, model=model)).get("augments", [])
                             ledger.note_augments(SELF, augs)
                         except Exception as e:
                             print(f"  (augment read failed: {e})")
@@ -448,12 +449,13 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="your line (compguide key or carry name) -> contest-aware advice")
     p.add_argument("--partner", metavar="NAME", help="Double Up partner's name")
     p.add_argument("--partner-comp", metavar="KEY|CARRY", help="partner's line")
-    p.add_argument("--board", action="store_true", help="also read your board for positioning (extra vision call)")
-    p.add_argument("--augments", action="store_true", help="also read your active augments (extra vision call)")
-    p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
-    p.add_argument("--offers", action="store_true", help="also read the God/augment choice screen -> advise which to pick (extra vision call)")
-    p.add_argument("--items", action="store_true", help="also read the item-choice screen -> highlight which go on your carry")
-    p.add_argument("--rules-only", action="store_true", help="deterministic rules coach, no LLM brain")
+    p.add_argument("--board", action="store_true", help="also read your board for positioning (PAID gpt-4o — positioning isn't free yet)")
+    p.add_argument("--augments", action="store_true", help="also read your augment choices (free, local icon match)")
+    p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (free, local)")
+    p.add_argument("--offers", action="store_true", help="also read the God-choice screen (PAID gpt-4o)")
+    p.add_argument("--items", action="store_true", help="also read the item-choice screen -> highlight carry items (free, local)")
+    p.add_argument("--brain", action="store_true", help="opt in to the PAID gpt-4o reasoning brain (needs OPENAI_API_KEY + credits); default is the free rules coach")
+    p.add_argument("--rules-only", action="store_true", help="(deprecated — the free rules coach is the default now)")
     p.add_argument("--llm-eyes", action="store_true", help="use the paid gpt-4o lobby reader instead of free local OCR")
     return p
 
@@ -467,4 +469,4 @@ if __name__ == "__main__":
     else:
         watch(comp_key=args.comp, partner_name=args.partner, partner_comp_key=args.partner_comp,
               board=args.board, augments=args.augments, shop=args.shop, offers=args.offers,
-              items=args.items, use_brain=not args.rules_only, local_eyes=not args.llm_eyes)
+              items=args.items, use_brain=args.brain, local_eyes=not args.llm_eyes)
