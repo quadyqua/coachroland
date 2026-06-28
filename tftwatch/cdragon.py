@@ -207,6 +207,24 @@ def trait_breakpoints(name: str) -> list:
     return _trait_bps.get((name or "").lower(), [])
 
 
+_traits_list: list[str] = []
+
+
+def current_traits() -> list[str]:
+    """Display names of the CURRENT set's traits — used to constrain the trait-panel read
+    to REAL traits, filtering OCR junk / player names that bleed into the region."""
+    _load()
+    if _traits_list:
+        return _traits_list
+    try:
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        latest = max(data.get("setData", []), key=lambda s: s.get("number") or 0)
+        _traits_list.extend(sorted({t.get("name") for t in latest.get("traits", []) if t.get("name")}))
+    except Exception:
+        pass
+    return _traits_list
+
+
 def champ_name(api: str) -> str:
     _load()
     return _champ_name.get(api) or humanize(api)

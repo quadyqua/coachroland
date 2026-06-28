@@ -158,20 +158,37 @@ def read_self(image_path: str, crop=SELF_REGION) -> dict:
 TRAIT_REGION = (0.0, 0.13, 0.135, 0.58)
 
 
+def _trait_match(text: str):
+    """Return a real current-set trait name if the OCR text matches one, else None.
+    Filters out junk and player names that bleed into the trait panel region."""
+    traits = cdragon.current_traits()
+    if not traits or not text:
+        return None
+    tl = text.casefold().replace(" ", "").replace(".", "").replace("'", "")
+    if len(tl) < 3:
+        return None
+    for name in traits:
+        nl = name.casefold().replace(" ", "").replace(".", "").replace("'", "")
+        if tl == nl or (len(tl) >= 4 and (tl in nl or nl in tl)):
+            return name
+    return None
+
+
 def read_traits_pil(img: "Image.Image", crop=TRAIT_REGION) -> dict:
-    """{traits:[{name,count}]}. Trait name + the count number that sits just below it."""
+    """{traits:[{name,count}]}. Trait name (matched to a REAL trait) + the count below it."""
     boxes = _boxes(_crop(img, crop))
     nums = [b for b in boxes if any(c.isdigit() for c in b["text"])]
     traits = []
     for b in boxes:
-        if sum(c.isalpha() for c in b["text"]) < 4 or _roster_match(b["text"]):
+        name = _trait_match(b["text"])          # only keep boxes that ARE a real trait
+        if not name:
             continue
         below = [d for d in nums if 0 <= d["cy"] - b["cy"] <= 140]
         count = None
         if below:
             lead = "".join(c for c in min(below, key=lambda d: d["cy"] - b["cy"])["text"] if c.isdigit())
             count = int(lead[0]) if lead else None
-        traits.append({"name": b["text"], "count": count})
+        traits.append({"name": name, "count": count})
     return {"traits": traits}
 
 

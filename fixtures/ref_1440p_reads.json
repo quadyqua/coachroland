@@ -1,0 +1,150 @@
+{
+  "resolution": [
+    2560,
+    1440
+  ],
+  "aspect": "16:9",
+  "stage_state": "planning",
+  "regions": {
+    "lobby": [
+      0.78,
+      0.08,
+      1.0,
+      0.97
+    ],
+    "self_shop": [
+      0.12,
+      0.8,
+      0.82,
+      1.0
+    ],
+    "traits": [
+      0.0,
+      0.13,
+      0.135,
+      0.58
+    ],
+    "stage": [
+      0.33,
+      0.0,
+      0.5,
+      0.055
+    ],
+    "bench": [
+      0.12,
+      0.655,
+      0.58,
+      0.745
+    ],
+    "items": [
+      0.18,
+      0.28,
+      0.82,
+      0.74
+    ],
+    "augments": [
+      0.18,
+      0.3,
+      0.82,
+      0.62
+    ],
+    "offers": [
+      0.22,
+      0.22,
+      0.78,
+      0.66
+    ]
+  },
+  "expected_reads": {
+    "stage": {
+      "stage": "3-2"
+    },
+    "self": {
+      "gold": 6,
+      "level": 6,
+      "shop": [
+        {
+          "name": "Lissandra",
+          "cost": 1
+        },
+        {
+          "name": "Rhaast",
+          "cost": 3
+        },
+        {
+          "name": "Aatrox",
+          "cost": 1
+        },
+        {
+          "name": "Pyke",
+          "cost": 2
+        }
+      ]
+    },
+    "traits": {
+      "traits": [
+        {
+          "name": "Space Groove",
+          "count": 4
+        },
+        {
+          "name": "Bastion",
+          "count": 2
+        },
+        {
+          "name": "Brawler",
+          "count": 1
+        },
+        {
+          "name": "Marauder",
+          "count": 1
+        },
+        {
+          "name": "Rogue",
+          "count": 1
+        },
+        {
+          "name": "Vanguard",
+          "count": 1
+        },
+        {
+          "name": "Mecha",
+          "count": 1
+        }
+      ]
+    },
+    "lobby": {
+      "players": [
+        {
+          "name": "oSplash",
+          "hp": 88,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        },
+        {
+          "name": "youngibear",
+          "hp": 84,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        },
+        {
+          "name": "Ibexz",
+          "hp": 74,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        },
+        {
+          "name": "Orphanmaker8",
+          "hp": 73,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        }
+      ],
+      "next_opponent": null
+    }
+  }
+}

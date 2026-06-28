@@ -546,8 +546,10 @@ class CoachRoland:
             act, rnd = (int(x) for x in str(stage).split("-")[:2])
         except Exception:
             return []
-        early, late = {2: (4, 5), 3: (6, 6), 4: (7, 8),
-                       5: (8, 8), 6: (9, 9), 7: (9, 9)}.get(act, (9, 9))
+        pacing = {2: (4, 5), 3: (6, 6), 4: (7, 8), 5: (8, 8), 6: (9, 9), 7: (9, 9)}
+        if act not in pacing:        # stage 1 is auto-leveled; nothing to nudge
+            return []
+        early, late = pacing[act]
         tgt = early if rnd < 5 else late
         if level < tgt:
             return [_rec(f"Level to {tgt} — behind for {stage}",
