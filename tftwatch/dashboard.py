@@ -69,7 +69,7 @@ _SAMPLE = {
         {"name": "Kai'Sa", "cost": 2, "action": "buy", "carry": False},
         {"name": "Cho'Gath", "cost": 1, "action": "buy", "carry": False},
         {"name": "Karma", "cost": 3, "action": "buy", "carry": False},
-        {"name": "Caitlyn", "cost": 4, "action": None, "carry": False},
+        {"name": "Samira", "cost": 1, "action": "give", "carry": False, "for": "partner", "partner": "Wisp"},
         {"name": "Jhin", "cost": 5, "action": "lock", "carry": True},
     ],
     "econ": {"text": "Save and build econ", "severity": "info",
@@ -230,6 +230,9 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .slot.lock{background:#16222e;border:2px solid var(--blue);}
 .slot.lock .sn{color:#cfe6ff;font-weight:700;}
 .slot.lock .sc{color:#9fc4e8;}
+.slot.give{background:#102420;border:2px solid #2bb88a;}
+.slot.give .sn{color:#9af0cf;font-weight:700;}
+.slot.give .sc{color:#5bd0a6;}
 .shopmeta{color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500;}
 .econ{margin-top:11px;background:#16222e;border:1px solid #2f5a7a;border-radius:10px;padding:10px 12px;font-size:13px;}
 .econ b{color:#cfe6ff;}
@@ -312,8 +315,8 @@ function renderShop(s){
   document.getElementById("shopmeta").textContent=
     (s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
   document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
-    var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':'slot dim');
-    var tag=sl.action==='buy'?' · buy':(sl.action==='lock'?' · LOCK':'');
+    var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':'slot dim'));
+    var tag=sl.action==='buy'?' · buy':(sl.action==='lock'?' · LOCK':(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
     return '<div class="'+cls+'"><div class="sn">'+(sl.name||'—')+(sl.carry?' ★':'')+
       '</div><div class="sc">'+(sl.cost!=null?sl.cost+'g':'')+tag+'</div></div>';
   }).join('') : '<div class="empty" style="grid-column:1/-1">No shop read — run with --shop.</div>';

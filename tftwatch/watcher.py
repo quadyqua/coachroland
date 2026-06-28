@@ -215,6 +215,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
     coach = CoachRoland()
     ledger = Ledger()
     my_comp, my_plan, teammate_comp = _comp_context(comp_key, partner_name, partner_comp_key)
+    partner_detail = compguide.comp_detail(partner_comp_key) if partner_comp_key else None
     brain_on = use_brain and bool(os.getenv("OPENAI_API_KEY"))
 
     bits = []
@@ -372,7 +373,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
 
                     shop_view = (coach.shop_plan(self_read.get("shop"), last_comp,
-                                                 self_read.get("gold")) if (self_read and last_comp) else [])
+                                                 self_read.get("gold"), partner_comp=partner_detail,
+                                                 partner_name=partner_name) if self_read else [])
                     econ = (coach.reroll_advice(self_read.get("gold"), self_read.get("level"),
                                                 (last_comp or {}).get("playstyle")) if self_read else [])
                     stamp = time.strftime('%H:%M:%S')

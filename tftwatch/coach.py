@@ -397,29 +397,43 @@ class CoachRoland:
                                 "buy"))
         return out
 
-    def shop_plan(self, shop, comp, gold=None) -> list[dict]:
-        """Per-slot shop view for the dashboard strip: action = buy / lock / None.
+    def shop_plan(self, shop, comp, gold=None, partner_comp=None, partner_name=None) -> list[dict]:
+        """Per-slot shop view for the dashboard strip — Double-Up aware.
 
-        buy  = it's in your comp and you can afford it (light it up).
-        lock = it's in your comp but you're short on gold -> lock the shop to keep it.
-        None = not in your comp (dim it).
+        action: buy  = in YOUR comp, affordable (light it up)
+                lock = in YOUR comp but you're short on gold -> lock the shop to keep it
+                give = your PARTNER needs it -> buy and cannon it to them
+                None = nobody needs it (dim)
+        Your own needs outrank your partner's.
         """
-        if not shop or not comp:
+        if not shop:
             return []
-        carry = (comp.get("carry") or "").lower()
-        units = {u.lower() for u in (comp.get("early_units") or [])}
-        units |= {u.lower() for u in (comp.get("board") or comp.get("final_board") or [])}
+
+        def unit_set(c):
+            if not c:
+                return set(), ""
+            u = {x.lower() for x in (c.get("early_units") or [])}
+            u |= {x.lower() for x in (c.get("board") or c.get("final_board") or [])}
+            return u, (c.get("carry") or "").lower()
+
+        my_units, my_carry = unit_set(comp)
+        p_units, p_carry = unit_set(partner_comp)
         view = []
         for s in shop:
             name = (s or {}).get("name") or None
             cost = (s or {}).get("cost")
             nl = (name or "").lower()
-            is_carry = bool(name) and nl == carry
-            wanted = bool(name) and (is_carry or nl in units)
-            action = None
-            if wanted:
-                action = "lock" if (gold is not None and cost is not None and gold < cost) else "buy"
-            view.append({"name": name, "cost": cost, "action": action, "carry": is_carry})
+            affordable = gold is None or cost is None or gold >= cost
+            is_my_carry = bool(name) and nl == my_carry
+            mine = bool(name) and (is_my_carry or nl in my_units)
+            theirs = bool(name) and not mine and partner_comp and (nl == p_carry or nl in p_units)
+            action, who = None, None
+            if mine:
+                action, who = ("buy" if affordable else "lock"), "you"
+            elif theirs:
+                action, who = ("give" if affordable else None), "partner"
+            view.append({"name": name, "cost": cost, "action": action, "carry": is_my_carry,
+                         "for": who, "partner": partner_name if theirs else None})
         return view
 
     def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:
