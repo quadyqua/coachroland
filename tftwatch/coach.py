@@ -498,6 +498,29 @@ class CoachRoland:
                      "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll at "
                      "level 8 (around stage 4-1).", "info")]
 
+    def level_pacing(self, stage, level, playstyle=None) -> list[dict]:
+        """Compare your level to standard pacing for the stage. Reroll comps level on
+        their own schedule, so this only nudges fast / flex / standard lines."""
+        if not stage or level is None or (playstyle or "").lower() == "reroll":
+            return []
+        try:
+            act, rnd = (int(x) for x in str(stage).split("-")[:2])
+        except Exception:
+            return []
+        early, late = {2: (4, 5), 3: (6, 6), 4: (7, 8),
+                       5: (8, 8), 6: (9, 9), 7: (9, 9)}.get(act, (9, 9))
+        tgt = early if rnd < 5 else late
+        if level < tgt:
+            return [_rec(f"Level to {tgt} — behind for {stage}",
+                         f"You're level {level} at {stage}; standard pacing is {tgt}. Buy XP to hold board "
+                         f"strength and trait breakpoints — unless you're deliberately rolling here.", "warn")]
+        if level > tgt:
+            return [_rec(f"Ahead on level ({level} at {stage})",
+                         f"Above the {tgt} curve for {stage} — you can roll harder or bank econ; just don't "
+                         f"out-level your board.", "info")]
+        return [_rec(f"On the level curve ({level} at {stage})",
+                     f"Right on pace ({tgt}) for {stage}. Keep econ and hit your spikes.", "info")]
+
     def item_choice(self, offered, comp) -> list[dict]:
         """When you're offered items (armory/anvil), flag which belong on your carry.
 
