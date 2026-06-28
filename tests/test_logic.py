@@ -88,6 +88,17 @@ def test_level_pacing():
     assert coach.level_pacing(None, 5, "flex") == []
 
 
+def test_ledger_accumulates_contest():
+    from tftwatch.ledger import Ledger
+    L = Ledger()
+    L.note_carry("A", "Jhin"); L.note_carry("B", "Mordekaiser"); L.note_carry("C", "Jhin")
+    assert L.contested_carries() == ["Jhin"]                 # 2 on Jhin, 1 on Morde
+    L.note_carry("D", "Mordekaiser")
+    assert L.contested_carries() == ["Jhin", "Mordekaiser"]  # now both contested
+    L.note_carry("C", "Mordekaiser")                         # C pivots off Jhin
+    assert L.contested_carries() == ["Mordekaiser"]          # Jhin no longer 2+
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

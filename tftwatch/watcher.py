@@ -119,14 +119,8 @@ def _smooth_hp(players, hp_hist, max_drop: int = 25) -> None:
             hp_hist[name] = hp
 
 
-def _contested_carries(data: dict) -> list[str]:
-    """Carries 2+ players are currently shown spiking on — the live 'what's hot' read.
-
-    The lobby panel only reveals a unit when someone recently starred it up, so this
-    is a partial signal (sharpest during multi-spike moments); we surface what we can.
-    """
-    units = [p.get("unit") for p in (data.get("players") or []) if p.get("unit")]
-    return sorted({u for u in units if units.count(u) >= 2})
+# Contest detection now lives on the Ledger (ledger.contested_carries), which accumulates
+# each player's carry across the whole game instead of relying on a single frame.
 
 
 def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contested,
@@ -305,7 +299,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     for p in players:                          # ledger: remember spiked carries
                         if p.get("unit") and p.get("name"):
                             ledger.note_carry(p["name"], p["unit"])
-                    contested = _contested_carries(data)
+                    contested = ledger.contested_carries()   # accumulated across the game
                     open_list = compguide.open_comps(contested)
                     alt_name = open_list[0]["name"] if open_list else "an open line"
 

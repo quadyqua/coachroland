@@ -36,3 +36,10 @@ class Ledger:
 
     def carry_for(self, name: str):
         return self.carries.get(name)
+
+    def contested_carries(self, min_players: int = 2) -> list[str]:
+        """Carries that >= min_players DISTINCT players are on, across everything seen this
+        game (not just the current frame) — accumulates as opponents star up over time."""
+        from collections import Counter
+        counts = Counter(c for c in self.carries.values() if c)
+        return sorted({c for c, n in counts.items() if n >= min_players})
