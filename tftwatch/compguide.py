@@ -369,9 +369,43 @@ def comp_detail(key_or_carry):
     }
 
 
+_TIER_RANK = {"S": 0, "A": 1, "A (Double Up)": 1, "B": 2, "C": 3}
+
+
 def open_comps(contested_carries):
     """Comps whose carry is NOT being contested — the 'never assume, read the lobby' filter."""
     contested = {c.lower() for c in (contested_carries or [])}
-    tier_rank = {"S": 0, "A": 1, "A (Double Up)": 1, "B": 2, "C": 3}
     out = [c for c in COMPS.values() if c.get("carry", "").lower() not in contested]
-    return sorted(out, key=lambda c: tier_rank.get(c.get("tier"), 9))
+    return sorted(out, key=lambda c: _TIER_RANK.get(c.get("tier"), 9))
+
+
+def suggest_for_traits(active_traits, contested=None):
+    """Build a comp FROM what the player is already fielding — no preset comp needed.
+
+    active_traits = [{name, count}]. Picks the best meta comp whose DEFINING trait
+    (traits[0]) matches the player's strongest active trait, uncontested, best tier;
+    falls back to any comp that uses a strong active trait. Deterministic + free.
+    """
+    if not active_traits:
+        return None
+    contested = {c.lower() for c in (contested or [])}
+    strongest = sorted(active_traits, key=lambda t: -(t.get("count") or 0))
+
+    # 1. prefer a comp whose primary/defining trait IS your strongest trait
+    for t in strongest:
+        tn = (t.get("name") or "").lower()
+        if not tn:
+            continue
+        hits = [c for c in COMPS.values()
+                if [x.lower() for x in c.get("traits", [])][:1] == [tn]
+                and c.get("carry", "").lower() not in contested]
+        if hits:
+            return sorted(hits, key=lambda c: _TIER_RANK.get(c.get("tier"), 9))[0]
+
+    # 2. fallback: any uncontested comp that uses one of your strong traits at all
+    for t in strongest:
+        tn = (t.get("name") or "").lower()
+        for c in sorted(COMPS.values(), key=lambda c: _TIER_RANK.get(c.get("tier"), 9)):
+            if tn in [x.lower() for x in c.get("traits", [])] and c.get("carry", "").lower() not in contested:
+                return c
+    return None

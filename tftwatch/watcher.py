@@ -66,28 +66,32 @@ def _changed(a, b, threshold: float = 6.0) -> bool:
     return float(np.abs(a - b).mean()) > threshold
 
 
+def _comp_dicts(c):
+    """Build the (my_comp, my_plan) dicts the coach wants from a comp-guide entry."""
+    if not c:
+        return None, None
+    carry = c.get("carry")
+    has_carry = bool(carry) and carry.lower() != "flex"
+    my_comp = {
+        "name": c.get("name"), "carry": carry,
+        "carries": [carry] if has_carry else [],
+        "carry_items": c.get("carry_items", []),
+        "carry_components": c.get("carry_components", []),
+        "flexible_components": c.get("flexible_components", []),
+        "source": c.get("source"),
+    }
+    my_plan = {
+        "name": c.get("name"), "carry": carry,
+        "early_units": c.get("early_units"),
+        "level_plan": c.get("level_plan"), "source": c.get("source"),
+    }
+    return my_comp, my_plan
+
+
 def _comp_context(comp_key, partner_name, partner_comp_key):
     """Turn declared comp keys (or carry names) into the dicts the coach wants."""
-    my_comp = my_plan = teammate_comp = None
-
-    c = compguide.find(comp_key) if comp_key else None
-    if c:
-        carry = c.get("carry")
-        has_carry = bool(carry) and carry.lower() != "flex"
-        my_comp = {
-            "name": c.get("name"), "carry": carry,
-            "carries": [carry] if has_carry else [],
-            "carry_items": c.get("carry_items", []),
-            "carry_components": c.get("carry_components", []),
-            "flexible_components": c.get("flexible_components", []),
-            "source": c.get("source"),
-        }
-        my_plan = {
-            "name": c.get("name"), "carry": carry,
-            "early_units": c.get("early_units"),
-            "level_plan": c.get("level_plan"), "source": c.get("source"),
-        }
-
+    my_comp, my_plan = _comp_dicts(compguide.find(comp_key) if comp_key else None)
+    teammate_comp = None
     if partner_comp_key or partner_name:
         pc = compguide.find(partner_comp_key) if partner_comp_key else None
         pcarry = pc.get("carry") if pc else None
@@ -302,7 +306,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     # Traits = ground truth for which comp you're building -> read whenever the
                     # brain is on, so the comp pick is grounded in YOUR board, not random.
                     traits_read = None
-                    if brain_on:
+                    if brain_on or local_eyes:        # free when local_eyes; grounds the comp pick
                         try:
                             traits_read = (localvision.read_traits_pil(full) if local_eyes
                                            else read_traits_pil(full, model=TEXT_MODEL)).get("traits")
@@ -355,7 +359,13 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                 print(f"  (brain call failed: {e})")
                         strategic = last_brain_recs
                     else:
-                        strategic = _rules_advice(coach, my_comp, my_plan, teammate_comp,
+                        rc, rp = my_comp, my_plan
+                        if not comp_key and traits_read:   # no preset comp -> build one from your board
+                            det = compguide.suggest_for_traits(traits_read, contested)
+                            if det:
+                                rc, rp = _comp_dicts(det)
+                                last_comp = compguide.comp_detail(det.get("carry")) or last_comp
+                        strategic = _rules_advice(coach, rc, rp, teammate_comp,
                                                   data, contested, augs, alt_name)
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
