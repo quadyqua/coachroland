@@ -244,9 +244,12 @@ def read_augments(image_path: str, crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> 
 # ---- bench: which units you own, by PORTRAIT (free icon match, no OCR) ----------
 # Recognizing the tile tells us the champion AND its cost (cdragon), so this is the
 # free, always-on "what's on my bench" read that powers pair detection.
-BENCH_REGION = (0.10, 0.79, 0.77, 0.855)   # 9-slot bench row, just above the shop; UNVALIDATED
-# ^ both calibration fixtures had empty benches, so this is an informed guess (the bench sits
-#   between the board and the shop bar). Needs a frame WITH benched units to lock in. on a real frame
+BENCH_REGION = (0.12, 0.655, 0.58, 0.745)   # 9-slot bench row (LOCATION verified on a real frame)
+# WARNING: unit RECOGNITION here does not work. CDragon-icon matching scores rendered bench tiles
+# at ~noise (truth ~0.04-0.29, indistinguishable) because the in-game tile (hex mask, cost border,
+# star pip, cropped splash, board bleed-through) doesn't correlate with the flat asset. Reading the
+# bench needs templates/a classifier built from REAL frame crops, not CDragon assets. The watcher
+# does NOT feed this into pair advice (would create false pairs). Region kept for that future work. on a real frame
 BENCH_SLOTS = 9
 
 

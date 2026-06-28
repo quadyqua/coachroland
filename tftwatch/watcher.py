@@ -330,13 +330,11 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
 
                     # Bench is read FREE every cycle by portrait (icon match) -> always know
                     # what you own, so "pairs with a unit you have" fires without the paid board.
+                    # Bench unit recognition by CDragon-icon matching proved unreliable on real
+                    # frames (rendered tiles ~= noise vs the flat assets), so it's disabled to avoid
+                    # false "pair" advice. Shop-duplicate pairs (OCR names) still work. Re-enable
+                    # once a real-frame template/classifier recognizer exists. See BENCH_REGION note.
                     owned_units, bench_view = [], []
-                    if local_eyes:
-                        try:
-                            bench_view = localvision.read_bench_pil(full).get("bench", [])
-                            owned_units = [b["name"] for b in bench_view if (b.get("stars") or 1) < 2]
-                        except Exception as e:
-                            print(f"  (bench read failed: {e})")
 
                     # Board read adds on-board units + positioning (paid; bench already covered above).
                     positioning = []
