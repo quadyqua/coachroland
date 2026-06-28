@@ -374,6 +374,50 @@ class CoachRoland:
             "buy", stat="augment guidance (live % pending data)",
             priority=ACTIVE_CHOICE, timer=30)]
 
+    def shop_advice(self, shop, comp) -> list[dict]:
+        """Quick wins: units sitting in your shop RIGHT NOW that belong in your comp."""
+        if not shop or not comp:
+            return []
+        carry = (comp.get("carry") or "").lower()
+        units = {u.lower() for u in (comp.get("early_units") or [])}
+        units |= {u.lower() for u in (comp.get("board") or comp.get("final_board") or [])}
+        out = []
+        for slot in shop:
+            n = (slot or {}).get("name") or ""
+            nl = n.lower()
+            if not n:
+                continue
+            if nl == carry:
+                out.append(_rec(f"BUY {n} now — your carry",
+                                f"{n} is your main carry. Grab every copy you can find to upgrade it sooner.",
+                                "buy"))
+            elif nl in units:
+                out.append(_rec(f"BUY {n} — fits your comp",
+                                f"{n} is part of {comp.get('name', 'your comp')}. Pick it up while it's in your shop.",
+                                "buy"))
+        return out
+
+    def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:
+        """When to reroll vs level vs save — from gold + level + your comp's playstyle."""
+        if gold is None:
+            return []
+        if playstyle == "reroll":
+            if level and level >= 6 and gold >= 50:
+                return [_rec("Slow-roll now",
+                             f"Level {level}, {gold} gold. Reroll a little each round but stay above ~50 gold, "
+                             f"to find your upgrades while keeping interest. Don't level past your carry's breakpoint.",
+                             "buy")]
+            return [_rec("Build to 50 gold, then roll",
+                         "Reroll comp: get to 50 gold first for max interest, then slow-roll. Don't roll under 50 "
+                         "unless you're low on HP.", "info")]
+        if gold >= 50:
+            return [_rec("Level up, don't roll",
+                         f"Fast-leveling comp at {gold} gold — press Buy XP to push your level, and save your roll "
+                         f"for level 8.", "buy")]
+        return [_rec("Save and build econ",
+                     "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll later "
+                     "at level 8.", "info")]
+
     # ---- formatting ----------------------------------------------------------
     def say(self, recs: list[dict]) -> str:
         out = []
