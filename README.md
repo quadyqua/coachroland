@@ -1,62 +1,87 @@
 # TFTwatch
 
-Lobby scouting & comp prediction for Teamfight Tactics. **Phase 0** is live:
-point it at your opponents and it tells you what each of them spams and what
-they're most likely to force this game — plus a lobby-wide "what's contested"
-read that the off-the-shelf apps don't synthesize for you.
+A **free, local** coaching tool for Teamfight Tactics. Two parts:
 
-All data comes from official, read-only Riot API endpoints. **No screen reading,
-no input automation, no memory access → no Vanguard / ToS risk.**
+- **Coach Roland (live)** — reads your own screen and coaches you in real time on a
+  second-monitor dashboard: what to buy, your comp direction, econ / level / roll
+  timing, contest reads, item builds, and which God to pick. Double Up aware.
+- **Scouting (Phase 0)** — point it at opponents via the Riot API and it predicts what
+  each player will force this game, plus a lobby-wide "what's contested" read.
+
+**Runs free by default.** The live coach uses local OCR + champion-icon matching and a
+deterministic rules engine — no paid API needed, no keys required. An optional LLM
+"brain" (`--brain`) can use OpenAI, but it's strictly opt-in.
+
+## Safety / Riot policy
+
+Coach Roland only **observes and suggests**. It reads your own screen and public data,
+then advises in a separate window — it never automates input, never reads game memory,
+and never draws an in-game overlay. The Riot-API scouting is fully read-only. Every
+decision stays yours to make.
 
 ## Setup
 
 ```bash
 cd TFTwatch
 python -m venv .venv
-.venv\Scripts\activate            # Windows PowerShell:  .venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1         # PowerShell  (bash: source .venv/Scripts/activate)
 pip install -r requirements.txt
-copy .env.example .env            # then edit .env and paste your API key
 ```
 
-Get a key at https://developer.riotgames.com (a free **Development** key works;
-it expires every 24h — just regenerate it).
+No keys are needed for the **free live coach**. For scouting you need a Riot key, and
+for the optional `--brain` an OpenAI key — put either in `.env` (`copy .env.example .env`).
+A free Riot **Development** key (https://developer.riotgames.com) works; it expires every 24h.
 
-## Use
+## Live coach
 
 ```bash
-# Scout specific opponents (Name#TAG as shown in the client)
-python -m tftwatch.cli scout "Faker#KR1" "Robinsongz#NA1"
+# Free, local. Drag the window to your 2nd monitor -> http://127.0.0.1:8765
+python -m tftwatch.dashboard --shop --offers --items --augments
 
-# More history per player, different region
-python -m tftwatch.cli scout "Name#EUW" --matches 25 --platform euw1 --region europe
+# Double Up (pass your partner so it coaches the team, not contests it)
+python -m tftwatch.dashboard --shop --offers --partner "Name#TAG" --partner-comp samira_reroll
 
-# EXPERIMENTAL: auto-pull your current game's roster (only works mid-game)
-python -m tftwatch.cli scout --from-lobby "You#NA1"
+# Preview the UI with no game running
+python -m tftwatch.dashboard --demo
 ```
 
-## What you get
+Flags: `--shop` (buy advice + pairs), `--offers` (God pick), `--items` (carry items),
+`--augments`, `--partner` (Double Up), `--brain` (opt-in **paid** LLM reasoning),
+`--board` (opt-in **paid** positioning), `--save-frames SECS` (capture frames for tuning).
 
-- **Per opponent:** rank, their most-played comps (with avg placement), and a
-  **prediction** of next game's comp + a signal (one-trick / strong preference /
-  flex / leans).
-- **Lobby read:** which lines are *contested* across the table — your cue to
-  pivot off a crowded comp before you get starved of units.
+## Scouting (Phase 0)
 
-## Roadmap
+```bash
+python -m tftwatch.cli scout "Faker#KR1" "Robinsongz#NA1"
+python -m tftwatch.cli scout "Name#EUW" --matches 25 --platform euw1 --region europe
+```
 
-- **Phase 1** — hotkey screenshot + Claude vision to read an opponent's live
-  board/bench/items on demand.
-- **Phase 2** — reasoning engine: combine live boards + histories + meta into
-  counter/positioning advice with a natural-language "why".
+Gives, per opponent: rank, most-played comps (avg placement), and a next-game prediction;
+plus the lobby-wide contested-lines read.
 
-Coach Roland only ever **observes and suggests** — it reads your own screen and
-public data, then advises. It never automates input, never reads game memory, and
-never displays as an in-game overlay; advice lives in a separate window you keep on
-a second monitor. Every call stays yours to make.
+## What works vs. WIP (honest)
+
+**Works, free, validated on real frames:**
+- Scoreboard / contest detection, shop + costs, traits, **stage**, gold / level, God-choice pick.
+- Free rules coach: comp direction from your board, **stage-aware** econ / level / roll timing,
+  item theory (hold vs. slam, BIS components), shop-duplicate pair detection (with honest
+  2-star math), and Double Up partner advice.
+
+**Known gaps:**
+- Reading **icon-only units** (your bench/board) and **item/augment icons** isn't reliable
+  yet — matching rendered in-game tiles against flat CDragon assets scores at noise level.
+  This needs a recognizer trained on real-frame crops; the bench feed is disabled so it can't
+  give false advice in the meantime.
+- Reader regions target **16:9** (1080p + 1440p validated); other layouts/UI scales may shift them.
+- The LLM `--brain` needs OpenAI credits; the free rules coach is the default.
+
+## Tests
+
+```bash
+python tests/test_logic.py        # fast, no vision/API — covers the core coach logic
+```
 
 ## Notes
 
-- Match data is cached forever under `.cache/` (matches are immutable), so
-  repeat runs are fast and stay under the dev-key rate limit.
-- Champion/trait names are best-effort prettified from raw IDs; Phase 1 will map
-  them through Community Dragon for exact display names.
+- Match data and Community Dragon data are cached under `.cache/`, so repeat runs are fast.
+- Champion / item / trait names and costs come from Community Dragon (current set).
