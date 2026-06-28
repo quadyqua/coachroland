@@ -185,6 +185,28 @@ def current_set_augments() -> list[dict]:
     return _set_augments
 
 
+_trait_bps: dict = {}        # trait display name (lower) -> sorted [minUnits breakpoints]
+
+
+def trait_breakpoints(name: str) -> list:
+    """Active-unit breakpoints for a current-set trait, e.g. Bastion -> [2, 4, 6]."""
+    if not _trait_bps:
+        try:
+            data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            latest = max(data.get("setData", []), key=lambda s: s.get("number") or 0)
+            for t in latest.get("traits", []):
+                nm = t.get("name")
+                if not nm:
+                    continue
+                bps = sorted({e.get("minUnits") for e in (t.get("effects") or [])
+                              if e.get("minUnits")})
+                if bps:
+                    _trait_bps[nm.lower()] = bps
+        except Exception:
+            pass
+    return _trait_bps.get((name or "").lower(), [])
+
+
 def champ_name(api: str) -> str:
     _load()
     return _champ_name.get(api) or humanize(api)

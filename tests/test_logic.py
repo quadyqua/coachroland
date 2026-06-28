@@ -73,6 +73,14 @@ def test_choose_god_returns_priority_pick():
     assert rec and rec[0]["priority"] >= 100 and "take" in rec[0]["text"].lower()
 
 
+def test_trait_breakpoints_and_advice():
+    assert cdragon.trait_breakpoints("Bastion") == [2, 4, 6]
+    # one unit from the next breakpoint -> a rec; two away -> nothing
+    assert "Bastion 2" in coach.trait_advice([{"name": "Bastion", "count": 1}])[0]["text"]
+    assert coach.trait_advice([{"name": "Bastion", "count": 2}]) == []
+    assert coach.trait_advice([]) == []
+
+
 def test_level_pacing():
     assert "behind" in coach.level_pacing("2-1", 3, "flex")[0]["text"].lower()
     assert "curve" in coach.level_pacing("3-2", 6, "flex")[0]["text"].lower()

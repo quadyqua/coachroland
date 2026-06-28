@@ -498,6 +498,25 @@ class CoachRoland:
                      "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll at "
                      "level 8 (around stage 4-1).", "info")]
 
+    def trait_advice(self, traits, max_recs=2) -> list[dict]:
+        """Flag active traits that are ONE unit from their next breakpoint — a power spike
+        you can often grab cheaply. Uses your live trait counts + CDragon breakpoints."""
+        if not traits:
+            return []
+        near = []
+        for t in traits:
+            name, count = t.get("name"), t.get("count")
+            if not name or count is None:
+                continue
+            nxt = next((b for b in cdragon.trait_breakpoints(name) if b > count), None)
+            if nxt is not None and nxt - count == 1:        # exactly one unit away
+                near.append((nxt, name, count))
+        near.sort(key=lambda x: -x[0])                       # bigger breakpoints first
+        return [_rec(f"1 unit from {name} {nxt}",
+                     f"You have {count} {name}; one more {name} unit hits the {nxt} breakpoint. "
+                     f"If one fits your board, it's a cheap power spike.", "info")
+                for nxt, name, count in near[:max_recs]]
+
     def level_pacing(self, stage, level, playstyle=None) -> list[dict]:
         """Compare your level to standard pacing for the stage. Reroll comps level on
         their own schedule, so this only nudges fast / flex / standard lines."""
