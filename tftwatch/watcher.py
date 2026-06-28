@@ -33,6 +33,7 @@ from PIL import Image
 
 from . import compguide
 from . import brain
+from . import localvision
 from .ledger import Ledger
 from .vision import (read_lobby_pil, read_board_pil, read_augments_pil, read_self_pil,
                      read_traits_pil, read_offer_pil, _crop_region, RIGHT_PANEL)
@@ -197,7 +198,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
           model: str = "gpt-4o", on_update=None,
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
-          offers: bool = False, use_brain: bool = True, brain_gap: float = 18.0) -> None:
+          offers: bool = False, use_brain: bool = True, brain_gap: float = 18.0,
+          local_eyes: bool = True) -> None:
     """Watch the panel; read + coach when it changes and settles.
 
     use_brain — run the LLM reasoning brain (auto-off if no OPENAI_API_KEY); brain_gap
@@ -244,7 +246,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     pending_since = None
                     last_read = now
                     try:
-                        data = read_lobby_pil(full, model=model)
+                        data = (localvision.read_lobby_pil(full) if local_eyes
+                                else read_lobby_pil(full, model=model))
                     except Exception as e:
                         print(f"  (read failed: {e})")
                         time.sleep(poll)
@@ -392,6 +395,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
     p.add_argument("--offers", action="store_true", help="also read the God/augment choice screen -> advise which to pick (extra vision call)")
     p.add_argument("--rules-only", action="store_true", help="deterministic rules coach, no LLM brain")
+    p.add_argument("--llm-eyes", action="store_true", help="use the paid gpt-4o lobby reader instead of free local OCR")
     return p
 
 
@@ -404,4 +408,4 @@ if __name__ == "__main__":
     else:
         watch(comp_key=args.comp, partner_name=args.partner, partner_comp_key=args.partner_comp,
               board=args.board, augments=args.augments, shop=args.shop, offers=args.offers,
-              use_brain=not args.rules_only)
+              use_brain=not args.rules_only, local_eyes=not args.llm_eyes)
