@@ -132,6 +132,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (free, local)")
     p.add_argument("--items", action="store_true", help="read the item-choice screen -> highlight carry items (free, local)")
     p.add_argument("--offers", action="store_true", help="read the God-choice screen -> which God to take (free, local OCR)")
+    p.add_argument("--save-frames", type=int, default=0, metavar="SECS",
+                   help="save a full screenshot every SECS to training_frames/ — build a dataset to train icon recognition")
     p.add_argument("--rules-only", action="store_true", help="(deprecated — the free rules coach is the default now)")
     return p
 
@@ -161,7 +163,8 @@ def main() -> None:
             target=lambda: watch(on_update=_on_update, comp_key=args.comp,
                                  partner_name=args.partner, partner_comp_key=args.partner_comp,
                                  board=args.board, augments=args.augments, shop=args.shop,
-                                 items=args.items, offers=args.offers, use_brain=False),  # live dashboard = free rules coach
+                                 items=args.items, offers=args.offers, use_brain=False,
+                                 save_frames=args.save_frames),  # live dashboard = free rules coach
             daemon=True).start()
         print("Live — open http://127.0.0.1:8765  (drag to monitor 2, fullscreen). Ctrl+C to stop.")
     app.run(host="127.0.0.1", port=8765, debug=False)

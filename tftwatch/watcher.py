@@ -207,7 +207,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
           offers: bool = False, items: bool = False, use_brain: bool = False,
-          brain_gap: float = 18.0, local_eyes: bool = True) -> None:
+          brain_gap: float = 18.0, local_eyes: bool = True, save_frames: int = 0) -> None:
     """Watch the panel; read + coach when it changes and settles.
 
     use_brain — run the LLM reasoning brain (auto-off if no OPENAI_API_KEY); brain_gap
@@ -239,6 +239,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
     last_comp = compguide.comp_detail(comp_key) if comp_key else None
     hp_hist: dict = {}                     # per-player HP, to reject misread crashes
     empty_reads = 0
+    last_save = 0.0                        # for --save-frames training capture
 
     with mss.MSS() as sct:
         monitor = sct.monitors[1]
@@ -247,6 +248,15 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                 full = _grab_full(sct, monitor)
                 sig = _signature(full)
                 now = time.time()
+
+                if save_frames and (now - last_save) >= save_frames:   # training-data capture
+                    try:
+                        os.makedirs("training_frames", exist_ok=True)
+                        full.save(os.path.join("training_frames", f"frame_{time.strftime('%H%M%S')}.jpg"),
+                                  quality=88)
+                        last_save = now
+                    except Exception as e:
+                        print(f"  (frame save failed: {e})")
 
                 if _changed(last_sig, sig):
                     last_sig = sig
@@ -461,6 +471,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--brain", action="store_true", help="opt in to the PAID gpt-4o reasoning brain (needs OPENAI_API_KEY + credits); default is the free rules coach")
     p.add_argument("--rules-only", action="store_true", help="(deprecated — the free rules coach is the default now)")
     p.add_argument("--llm-eyes", action="store_true", help="use the paid gpt-4o lobby reader instead of free local OCR")
+    p.add_argument("--save-frames", type=int, default=0, metavar="SECS",
+                   help="save a full screenshot every SECS to training_frames/ — build a real dataset to train icon recognition (bench/items/augments)")
     return p
 
 
@@ -473,4 +485,5 @@ if __name__ == "__main__":
     else:
         watch(comp_key=args.comp, partner_name=args.partner, partner_comp_key=args.partner_comp,
               board=args.board, augments=args.augments, shop=args.shop, offers=args.offers,
-              items=args.items, use_brain=args.brain, local_eyes=not args.llm_eyes)
+              items=args.items, use_brain=args.brain, local_eyes=not args.llm_eyes,
+              save_frames=args.save_frames)
