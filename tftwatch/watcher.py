@@ -402,7 +402,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     else:
                         rc, rp = my_comp, my_plan
                         if not comp_key and traits_read:   # no preset comp -> build one from your board
-                            det = compguide.suggest_for_traits(traits_read, contested)
+                            det = compguide.suggest_for_traits(traits_read, contested,
+                                                               current_key=(last_comp or {}).get("key"))
                             if det:
                                 rc, rp = _comp_dicts(det)
                                 last_comp = compguide.comp_detail(det.get("carry")) or last_comp

@@ -379,17 +379,31 @@ def open_comps(contested_carries):
     return sorted(out, key=lambda c: _TIER_RANK.get(c.get("tier"), 9))
 
 
-def suggest_for_traits(active_traits, contested=None):
+def suggest_for_traits(active_traits, contested=None, current_key=None):
     """Build a comp FROM what the player is already fielding — no preset comp needed.
 
     active_traits = [{name, count}]. Picks the best meta comp whose DEFINING trait
     (traits[0]) matches the player's strongest active trait, uncontested, best tier;
     falls back to any comp that uses a strong active trait. Deterministic + free.
+
+    current_key gives STICKINESS: if you've already committed to a comp and its defining
+    trait is still within 1 of your strongest, keep it — don't flip the whole comp (and
+    your item advice) on a single noisy read (e.g. traits misread on the item/God screen).
     """
     if not active_traits:
         return None
     contested = {c.lower() for c in (contested or [])}
     strongest = sorted(active_traits, key=lambda t: -(t.get("count") or 0))
+
+    if current_key and current_key in COMPS:
+        cur = COMPS[current_key]
+        cur_def = next(iter([x.lower() for x in cur.get("traits", [])][:1]), None)
+        top_count = strongest[0].get("count") or 0
+        cur_count = next((t.get("count") or 0 for t in strongest
+                          if (t.get("name") or "").lower() == cur_def), 0)
+        if (cur_def and cur.get("carry", "").lower() not in contested
+                and cur_count + 1 >= top_count):     # still your line (within 1 of the top) -> stay
+            return cur
 
     # 1. prefer a comp whose primary/defining trait IS your strongest trait
     for t in strongest:
