@@ -459,25 +459,38 @@ class CoachRoland:
         return view
 
     def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:
-        """When to reroll vs level vs save — from gold + level + your comp's playstyle."""
+        """When to reroll vs level vs save — from gold + level + playstyle, tuned by stage."""
         if gold is None:
             return []
+        act = None
+        if stage:
+            try:
+                act = int(str(stage).split("-")[0])
+            except Exception:
+                act = None
+        early = act is not None and act <= 2     # stage 1-x / 2-x = econ phase, not roll phase
+
         if playstyle == "reroll":
             if level and level >= 6 and gold >= 50:
                 return [_rec("Slow-roll now",
                              f"Level {level}, {gold} gold. Reroll a little each round but stay above ~50 gold, "
                              f"to find your upgrades while keeping interest. Don't level past your carry's breakpoint.",
                              "buy")]
+            tail = f" You're at stage {stage} — hit your econ breakpoints first." if early else \
+                   " Don't roll under 50 unless you're low on HP."
             return [_rec("Build to 50 gold, then roll",
-                         "Reroll comp: get to 50 gold first for max interest, then slow-roll. Don't roll under 50 "
-                         "unless you're low on HP.", "info")]
+                         "Reroll comp: get to 50 gold first for max interest, then slow-roll." + tail, "info")]
         if gold >= 50:
             return [_rec("Level up, don't roll",
                          f"Fast-leveling comp at {gold} gold — press Buy XP to push your level, and save your roll "
                          f"for level 8.", "buy")]
+        if early:
+            return [_rec("Too early to roll — build econ + board",
+                         f"Stage {stage}: don't spend gold rolling. Buy XP on curve, grab pairs, hold for interest, "
+                         f"and play your strongest board. Roll once you hit level 8 (around stage 4-1).", "info")]
         return [_rec("Save and build econ",
-                     "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll later "
-                     "at level 8.", "info")]
+                     "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll at "
+                     "level 8 (around stage 4-1).", "info")]
 
     def item_choice(self, offered, comp) -> list[dict]:
         """When you're offered items (armory/anvil), flag which belong on your carry.

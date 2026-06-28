@@ -11,6 +11,8 @@ Honest limits vs the LLM reader (these are ICONS, not text, so OCR can't read th
   - the crossed-swords NEXT-opponent marker — left null
 Everything text (names, HP, spiked champ) reads locally and free.
 """
+import re
+
 import numpy as np
 from PIL import Image
 
@@ -136,12 +138,9 @@ def read_self_pil(img: "Image.Image", crop=SELF_REGION) -> dict:
     champs = sorted(((b["cx"], b["cy"], _roster_match(b["text"])) for b in boxes),
                     key=lambda x: x[0])
     champs = [(cx, cy, m) for cx, cy, m in champs if m]
-    costs = [b for b in boxes if b["text"].isdigit() and 1 <= int(b["text"]) <= 5]
     shop = []
     for cx, cy, name in champs:
-        near = [d for d in costs if abs(d["cy"] - cy) < 70]
-        cost = int(min(near, key=lambda d: abs(d["cx"] - cx))["text"]) if near else None
-        shop.append({"name": name, "cost": cost})
+        shop.append({"name": name, "cost": cdragon.cost_of(name)})   # authoritative cost by name, not OCR
 
     # gold: best-effort — the largest small integer in the top band (gold reads larger
     # than the stray 1s and level digit there). Tune later if it grabs the wrong number.
@@ -178,6 +177,21 @@ def read_traits_pil(img: "Image.Image", crop=TRAIT_REGION) -> dict:
 
 def read_traits(image_path: str, crop=TRAIT_REGION) -> dict:
     return read_traits_pil(Image.open(image_path).convert("RGB"), crop)
+
+
+# ---- stage / round indicator (top center, e.g. "2-1") -> free, unlocks timing advice
+STAGE_REGION = (0.44, 0.0, 0.56, 0.045)
+
+
+def read_stage_pil(img: "Image.Image", crop=STAGE_REGION) -> dict:
+    """{stage:'2-1'} parsed from the top-center round text, or {stage:None}."""
+    text = " ".join(b["text"] for b in _boxes(_crop(img, crop)))
+    m = re.search(r"([1-9])\s*[-–—]\s*([1-9])", text)
+    return {"stage": f"{m.group(1)}-{m.group(2)}" if m else None}
+
+
+def read_stage(image_path: str, crop=STAGE_REGION) -> dict:
+    return read_stage_pil(Image.open(image_path).convert("RGB"), crop)
 
 
 # ---- item-choice screen (armory / anvil): which items are offered --------------
@@ -217,7 +231,8 @@ def read_bench_pil(img: "Image.Image", crop=BENCH_REGION, slots=BENCH_SLOTS) -> 
             continue
         m = icons.identify(cell)
         if m:
-            out.append({"name": m["name"], "cost": m["cost"], "slot": i})
+            out.append({"name": m["name"], "cost": m["cost"],
+                        "stars": icons.count_stars(cell), "slot": i})
     return {"bench": out}
 
 
@@ -228,8 +243,26 @@ def read_bench(image_path: str, crop=BENCH_REGION, slots=BENCH_SLOTS) -> dict:
 if __name__ == "__main__":
     import sys
     import json
+    import os
     args = sys.argv[1:]
-    if args and args[0] == "bench":
+    if args and args[0] == "calibrate":
+        # One-shot: dump every region crop + every read so all readers can be tuned
+        # against ONE real in-game frame. Send me the calib/*.png + the printed output.
+        path = args[1] if len(args) > 1 else "fixtures/lobby_starups_3-3.png"
+        img = Image.open(path).convert("RGB")
+        w, h = img.size
+        os.makedirs("calib", exist_ok=True)
+        regions = {"lobby": RIGHT_PANEL, "self_shop": SELF_REGION, "traits": TRAIT_REGION,
+                   "bench": BENCH_REGION, "stage": STAGE_REGION, "items": ITEM_REGION}
+        for nm, (l, t, r, b) in regions.items():
+            img.crop((int(w * l), int(h * t), int(w * r), int(h * b))).save(f"calib/{nm}.png")
+        print(f"saved {len(regions)} region crops -> calib/  (open each: does it frame the right thing?)")
+        print("  stage  :", read_stage_pil(img))
+        print("  self   :", read_self_pil(img))
+        print("  traits :", read_traits_pil(img))
+        print("  bench  :", read_bench_pil(img))
+        print("  lobby  :", {"players": len(read_lobby_pil(img).get("players", []))})
+    elif args and args[0] == "bench":
         # Calibration: dump the bench band + each slot's BEST match & score (no threshold),
         # so the region and accept-threshold can be tuned against a real in-game frame.
         path = args[1] if len(args) > 1 else "fixtures/lobby_starups_3-3.png"

@@ -276,7 +276,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "game_over",
                                            "data": None, "advice": [], "positioning": [], "comp": None,
                                            "shop": [], "econ": None, "items": [], "bench": [],
-                                           "gold": None, "level": None})
+                                           "stage": None, "gold": None, "level": None})
                             else:
                                 print(f"[{time.strftime('%H:%M:%S')}] Game over — cleared session "
                                       f"memory; removed {removed} temp file(s).\n")
@@ -320,6 +320,13 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         except Exception as e:
                             print(f"  (trait read failed: {e})")
 
+                    stage_read = None                  # round indicator (free) -> timing advice
+                    if local_eyes:
+                        try:
+                            stage_read = localvision.read_stage_pil(full).get("stage")
+                        except Exception as e:
+                            print(f"  (stage read failed: {e})")
+
                     # Bench is read FREE every cycle by portrait (icon match) -> always know
                     # what you own, so "pairs with a unit you have" fires without the paid board.
                     owned_units, bench_view = [], []
@@ -359,7 +366,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                             try:
                                 state = _assemble_state(
                                     comp_key, my_comp, teammate_comp, partner_name, data,
-                                    contested, ledger, self_read=self_read, owned_units=owned_units,
+                                    contested, ledger, stage=(stage_read or "unknown"),
+                                    self_read=self_read, owned_units=owned_units,
                                     traits=traits_read, offered=offered,
                                     committed_comp=(last_comp or {}).get("key"))
                                 out = brain.advise(state)
@@ -402,13 +410,14 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         except Exception as e:
                             print(f"  (item read failed: {e})")
                     econ = (coach.reroll_advice(self_read.get("gold"), self_read.get("level"),
-                                                (last_comp or {}).get("playstyle")) if self_read else [])
+                                                (last_comp or {}).get("playstyle"), stage=stage_read)
+                            if self_read else [])
                     stamp = time.strftime('%H:%M:%S')
                     if on_update:
                         on_update({"ts": stamp, "event": "read", "data": data,
                                    "advice": recs, "positioning": positioning, "comp": last_comp,
                                    "shop": shop_view, "econ": (econ[0] if econ else None),
-                                   "items": item_view, "bench": bench_view,
+                                   "items": item_view, "bench": bench_view, "stage": stage_read,
                                    "gold": (self_read or {}).get("gold"),
                                    "level": (self_read or {}).get("level")})
                     elif recs:

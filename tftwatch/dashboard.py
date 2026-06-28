@@ -21,7 +21,7 @@ from . import compguide
 load_dotenv()
 
 STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
-         "shop": [], "econ": None, "items": [], "bench": [], "gold": None, "level": None}
+         "shop": [], "econ": None, "items": [], "bench": [], "stage": None, "gold": None, "level": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -64,7 +64,7 @@ _SAMPLE = {
                 "reach it, buying Jhin more time to deal damage.",
          "stat": "Back-corner carry: longest time-to-death vs divers (meta)"},
     ],
-    "gold": 3, "level": 6,
+    "gold": 3, "level": 6, "stage": "4-2",
     "shop": [
         {"name": "Kai'Sa", "cost": 2, "action": "buy", "carry": False},
         {"name": "Cho'Gath", "cost": 1, "action": "buy", "carry": False},
@@ -81,9 +81,9 @@ _SAMPLE = {
         {"name": "Recurve Bow", "take": True, "carry": "Jhin"},
     ],
     "bench": [
-        {"name": "Talon", "cost": 1, "slot": 0},
-        {"name": "Talon", "cost": 1, "slot": 1},
-        {"name": "Caitlyn", "cost": 1, "slot": 2},
+        {"name": "Talon", "cost": 1, "stars": 1, "slot": 0},
+        {"name": "Talon", "cost": 1, "stars": 1, "slot": 1},
+        {"name": "Caitlyn", "cost": 1, "stars": 2, "slot": 2},
     ],
     "mode": "doubleup",
     "data": {
@@ -330,7 +330,7 @@ function renderComp(c){
 function renderShop(s){
   var slots=s.shop||[];
   document.getElementById("shopmeta").textContent=
-    (s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
+    (s.stage?'· stage '+s.stage+'  ':'')+(s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
   document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
     var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':'slot dim'));
     var tag=sl.action==='buy'?(sl.pair?' · pair':' · buy')
@@ -349,7 +349,8 @@ function renderBench(s){
   var counts={}; bn.forEach(function(b){counts[b.name]=(counts[b.name]||0)+1;});
   document.getElementById("bench").innerHTML = bn.map(function(b){
     var pair = counts[b.name]>=2;
-    return '<div class="'+(pair?'slot buy':'slot')+'"><div class="sn">'+(b.name||'?')+'</div><div class="sc">'
+    var stars = b.stars?(' '+Array(b.stars+1).join('★')):'';
+    return '<div class="'+(pair?'slot buy':'slot')+'"><div class="sn">'+(b.name||'?')+stars+'</div><div class="sc">'
       +(b.cost?b.cost+'g':'')+(pair?' &middot; pair':'')+'</div></div>';
   }).join('');
 }

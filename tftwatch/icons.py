@@ -57,6 +57,31 @@ def _load_templates():
     return _templates
 
 
+STAR_BAND = (0.0, 0.60, 1.0, 0.82)   # vertical slice of a unit tile where star pips sit; tune
+
+
+def count_stars(unit_pil: "Image.Image"):
+    """Best-effort 1/2/3-star count from the pip row on a unit tile, or None.
+
+    Star pips are bright + warm (bronze/silver/gold), so we threshold bright warm
+    pixels in the STAR_BAND and count runs of 'on' columns = number of pips. Heuristic;
+    STAR_BAND + thresholds must be tuned against a real frame (see calibrate CLI)."""
+    a = np.asarray(unit_pil.convert("RGB"), dtype=np.float32)
+    h, w = a.shape[:2]
+    l, t, r, b = STAR_BAND
+    band = a[int(h * t):int(h * b), int(w * l):int(w * r), :]
+    if band.size == 0:
+        return None
+    bright = (band.max(axis=2) > 175) & (band[:, :, 0] >= band[:, :, 2] - 10)  # warm + bright
+    col_on = bright.mean(axis=0) > 0.25
+    runs, prev = 0, False
+    for v in col_on:
+        if v and not prev:
+            runs += 1
+        prev = bool(v)
+    return max(1, min(3, runs)) if runs else None
+
+
 def identify(pil: "Image.Image", threshold: float = MATCH_THRESHOLD):
     """Best {name, cost, score} for a champion-portrait crop, or None below threshold."""
     tpls = _load_templates()
