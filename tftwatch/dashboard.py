@@ -20,7 +20,8 @@ from . import compguide
 
 load_dotenv()
 
-STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None}
+STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
+         "shop": [], "econ": None, "gold": None, "level": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -63,6 +64,17 @@ _SAMPLE = {
                 "reach it, buying Jhin more time to deal damage.",
          "stat": "Back-corner carry: longest time-to-death vs divers (meta)"},
     ],
+    "gold": 3, "level": 6,
+    "shop": [
+        {"name": "Kai'Sa", "cost": 2, "action": "buy", "carry": False},
+        {"name": "Cho'Gath", "cost": 1, "action": "buy", "carry": False},
+        {"name": "Karma", "cost": 3, "action": "buy", "carry": False},
+        {"name": "Caitlyn", "cost": 4, "action": None, "carry": False},
+        {"name": "Jhin", "cost": 5, "action": "lock", "carry": True},
+    ],
+    "econ": {"text": "Save and build econ", "severity": "info",
+             "why": "Fast-9 board at 3 gold — hold toward 50 for interest, play your strongest board, "
+                    "and slam item pieces. Roll at level 8."},
     "mode": "doubleup",
     "data": {
         "players": [
@@ -206,6 +218,21 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .unit.carry{background:#2a2410;border-color:var(--warn);color:#ffe08a;font-weight:700;}
 .items{font-size:13px;color:var(--blue);margin-bottom:8px;}
 .plan{font-size:13px;color:var(--tx);opacity:.9;border-top:1px solid var(--line);padding-top:8px;}
+/* Shop strip — buy-worthy slots lit up, can't-afford slots flagged to LOCK, rest dim. */
+.shop{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
+.slot{background:#1a1a22;border:1px solid var(--line);border-radius:9px;padding:9px 6px;text-align:center;}
+.slot .sn{font-size:13px;color:var(--tx);}
+.slot .sc{font-size:11px;color:var(--mut);margin-top:2px;}
+.slot.dim{opacity:.45;}
+.slot.buy{background:#20200f;border:2px solid var(--warn);}
+.slot.buy .sn{color:#ffe08a;font-weight:700;}
+.slot.buy .sc{color:#caa23a;}
+.slot.lock{background:#16222e;border:2px solid var(--blue);}
+.slot.lock .sn{color:#cfe6ff;font-weight:700;}
+.slot.lock .sc{color:#9fc4e8;}
+.shopmeta{color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500;}
+.econ{margin-top:11px;background:#16222e;border:1px solid #2f5a7a;border-radius:10px;padding:10px 12px;font-size:13px;}
+.econ b{color:#cfe6ff;}
 @media(max-width:760px){.grid{grid-template-columns:1fr;}}
 </style></head><body>
 <div class="head">
@@ -216,6 +243,10 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 
 <div class="card compcard"><h2>Your comp · what you're building</h2>
   <div id="comp"><div class="empty">No comp locked yet — Coach Roland will commit to one.</div></div></div>
+
+<div class="card"><h2>Your shop <span id="shopmeta" class="shopmeta"></span></h2>
+  <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div>
+  <div id="econ"></div></div>
 
 <div class="card"><h2>Coach says</h2>
   <div id="advice"><div class="empty">Waiting for the lobby…</div></div></div>
@@ -276,9 +307,23 @@ function renderComp(c){
   var plan=c.level_plan?'<div class="plan"><b>How to get there:</b> '+c.level_plan+'</div>':'';
   return '<div class="compname">'+c.name+ps+'</div>'+early+fin+items+plan;
 }
+function renderShop(s){
+  var slots=s.shop||[];
+  document.getElementById("shopmeta").textContent=
+    (s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
+  document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
+    var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':'slot dim');
+    var tag=sl.action==='buy'?' · buy':(sl.action==='lock'?' · LOCK':'');
+    return '<div class="'+cls+'"><div class="sn">'+(sl.name||'—')+(sl.carry?' ★':'')+
+      '</div><div class="sc">'+(sl.cost!=null?sl.cost+'g':'')+tag+'</div></div>';
+  }).join('') : '<div class="empty" style="grid-column:1/-1">No shop read — run with --shop.</div>';
+  document.getElementById("econ").innerHTML = s.econ
+    ? '<div class="econ"><b>'+s.econ.text+'</b> — <span style="color:var(--mut)">'+(s.econ.why||'')+'</span></div>' : '';
+}
 function render(s){
   if(s.event==="game_over"){ deadlines={}; }   // clear stale clocks between games
   document.getElementById("comp").innerHTML=renderComp(s.comp);
+  renderShop(s);
   document.getElementById("sub").textContent =
     (s.event==="game_over"?"game over — session cleared":(s.ts?("updated "+s.ts):"waiting"));
   var adv=document.getElementById("advice");

@@ -397,6 +397,31 @@ class CoachRoland:
                                 "buy"))
         return out
 
+    def shop_plan(self, shop, comp, gold=None) -> list[dict]:
+        """Per-slot shop view for the dashboard strip: action = buy / lock / None.
+
+        buy  = it's in your comp and you can afford it (light it up).
+        lock = it's in your comp but you're short on gold -> lock the shop to keep it.
+        None = not in your comp (dim it).
+        """
+        if not shop or not comp:
+            return []
+        carry = (comp.get("carry") or "").lower()
+        units = {u.lower() for u in (comp.get("early_units") or [])}
+        units |= {u.lower() for u in (comp.get("board") or comp.get("final_board") or [])}
+        view = []
+        for s in shop:
+            name = (s or {}).get("name") or None
+            cost = (s or {}).get("cost")
+            nl = (name or "").lower()
+            is_carry = bool(name) and nl == carry
+            wanted = bool(name) and (is_carry or nl in units)
+            action = None
+            if wanted:
+                action = "lock" if (gold is not None and cost is not None and gold < cost) else "buy"
+            view.append({"name": name, "cost": cost, "action": action, "carry": is_carry})
+        return view
+
     def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:
         """When to reroll vs level vs save — from gold + level + your comp's playstyle."""
         if gold is None:

@@ -269,7 +269,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                             removed = purge_captures()
                             if on_update:
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "game_over",
-                                           "data": None, "advice": [], "positioning": [], "comp": None})
+                                           "data": None, "advice": [], "positioning": [], "comp": None,
+                                           "shop": [], "econ": None, "gold": None, "level": None})
                             else:
                                 print(f"[{time.strftime('%H:%M:%S')}] Game over — cleared session "
                                       f"memory; removed {removed} temp file(s).\n")
@@ -370,10 +371,17 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
 
+                    shop_view = (coach.shop_plan(self_read.get("shop"), last_comp,
+                                                 self_read.get("gold")) if (self_read and last_comp) else [])
+                    econ = (coach.reroll_advice(self_read.get("gold"), self_read.get("level"),
+                                                (last_comp or {}).get("playstyle")) if self_read else [])
                     stamp = time.strftime('%H:%M:%S')
                     if on_update:
                         on_update({"ts": stamp, "event": "read", "data": data,
-                                   "advice": recs, "positioning": positioning, "comp": last_comp})
+                                   "advice": recs, "positioning": positioning, "comp": last_comp,
+                                   "shop": shop_view, "econ": (econ[0] if econ else None),
+                                   "gold": (self_read or {}).get("gold"),
+                                   "level": (self_read or {}).get("level")})
                     elif recs:
                         print(f"[{stamp}]\n{coach.say(recs)}\n")
                     else:
