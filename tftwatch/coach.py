@@ -271,11 +271,21 @@ class CoachRoland:
         carry = comp.get("carry", "your carry")
         if not contested:
             items = ", ".join(comp.get("carry_items", []))
-            comps_ = ", ".join(comp.get("carry_components", []))
+            cost = cdragon.cost_of(carry) or 0
+            playstyle = (comp.get("playstyle") or "").lower()
+            if cost >= 4 or playstyle in ("fast8", "fast9"):
+                target = (f"{carry} is a {cost}-cost — you play it 1-2 star WITH ITEMS; you won't "
+                          f"3-star (\"gold\") a {cost}-cost, so buy copies toward 2-star and to deny, "
+                          f"don't chase a gold.")
+            elif playstyle == "reroll" or (0 < cost <= 2):
+                target = (f"{carry} is a reroll carry — slow-roll and collect copies for a 3-star "
+                          f"(\"gold\"); that's your power spike.")
+            else:
+                target = f"Aim to 2-star {carry} and itemize."
             return [_rec(
                 f"Build {carry}'s items: {items}",
-                f"{carry} is your main carry — itemize them. Best build is {items}; collect {comps_} "
-                f"from carousels and item drops and slam toward it.",
+                f"{target} Best build is {items} — collect the components from carousels and item "
+                f"drops and slam toward it.",
                 "buy", stat=comp.get("source"))]
         flex = ", ".join(comp.get("flexible_components", comp.get("carry_components", [])))
         return [_rec(
