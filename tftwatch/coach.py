@@ -151,7 +151,7 @@ class CoachRoland:
             f"{', '.join(contesters)} are on {carry} too. The pool can't feed all of you, "
             f"so you'll be starved and place low if you stay.{aug_note} Consider {alt_comp}.",
             severity,
-            stat=None)]  # stat (e.g. "open line avg 4.1") filled once meta data is wired
+            stat=None)]  # kept qualitative on purpose — no live win-rates/placements (Riot TFT policy)
 
     # ---- Double Up (primary mode) -------------------------------------------
     def doubleup(self, my_comp: dict, teammate_comp: dict, data: dict,
@@ -371,9 +371,9 @@ class CoachRoland:
         return [_rec(
             f"Augment: take {pick}",
             "Best of the three for your board. Rule of thumb: an emblem that points your comp > a "
-            "proven strong augment > econ early / combat later. Exact win-rates come once augment "
-            "stat data is wired in.",
-            "buy", stat="augment guidance (live % pending data)",
+            "proven strong augment > econ early / combat later. (Live win-rates/placements are "
+            "intentionally not shown — Riot's TFT policy prohibits it; save stat review for post-game.)",
+            "buy", stat=None,
             priority=ACTIVE_CHOICE, timer=30)]
 
     def shop_advice(self, shop, comp) -> list[dict]:

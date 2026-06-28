@@ -126,6 +126,11 @@ comp" rule — your FIRST rec MUST be that pick, priority 100, timer ~30. Choose
 the comp they already have?), and (b) is NOT what the lobby is contesting. Name the exact option
 and give a one-sentence why that references their trait. If state.offered is null, ignore this.
 
+RIOT POLICY — keep it qualitative. Do NOT output augment win-rates, legend/God win-rates, or
+augment average placements (numbers like "4.2 avg" or "18% top-4"). Riot's TFT third-party policy
+prohibits showing these live. Say "strong pick this patch" / "best of the three", not a stat. Stat
+review belongs post-game.
+
 Return STRICT JSON only:
 {"comp_key": "<EXACT compguide key IF a meta comp matches their strongest active trait, else null>",
  "comp_name": "<display name of the comp — name it after their strongest active trait if no meta comp fits, e.g. 'Space Groove'>",
