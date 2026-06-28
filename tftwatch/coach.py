@@ -300,10 +300,14 @@ class CoachRoland:
     # ---- counter-aware recommendation (NEVER assume; always read the lobby) ---
     def recommend(self, contested_carries: list[str], my_intended: str = None,
                   top: int = 3) -> list[dict]:
-        """Suggest only comps OPEN in this lobby. If your intended carry is contested, warn loudly."""
+        """Suggest open comps — but only when it's useful. If you've already committed to a
+        comp and it's NOT contested, stay quiet: listing other lines just reads as 'switch'."""
         recs: list[dict] = []
-        if my_intended and my_intended.lower() in {c.lower() for c in (contested_carries or [])}:
-            recs += self.discourage(my_intended)
+        if my_intended:
+            if my_intended.lower() in {c.lower() for c in (contested_carries or [])}:
+                recs += self.discourage(my_intended)     # your line IS contested -> warn + show alts
+            else:
+                return recs                               # committed + uncontested -> no distractions
         opts = compguide.open_comps(contested_carries)[:top]
         if not opts:
             recs.append(_rec(
@@ -437,7 +441,10 @@ class CoachRoland:
             mine = bool(name) and (is_my_carry or nl in my_units)
             # copies you'd hold if you bought the shop copies of this unit. 3 copies = a 2★.
             copies = owned_counts[nl] + shop_counts[nl]
-            pair = bool(name) and copies >= 2
+            # Only chase a pair if the unit is IN your comp (or you haven't committed to one
+            # yet). Don't tell a committed Space Groove player to buy Lissandra just because
+            # they happen to hold a copy — off-comp pairs are a trap once you have a plan.
+            pair = bool(name) and copies >= 2 and (mine or not comp)
             tostar = ("makes 2★" if copies >= 3 else f"{copies}/3 to 2★") if pair else None
             theirs = bool(name) and not mine and not pair and partner_comp and (nl == p_carry or nl in p_units)
             action, who = None, None
