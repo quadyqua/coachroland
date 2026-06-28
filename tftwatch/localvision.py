@@ -180,7 +180,8 @@ def read_traits(image_path: str, crop=TRAIT_REGION) -> dict:
 
 
 # ---- stage / round indicator (top center, e.g. "2-1") -> free, unlocks timing advice
-STAGE_REGION = (0.34, 0.012, 0.42, 0.05)
+STAGE_REGION = (0.33, 0.0, 0.50, 0.055)   # wide on purpose: the indicator shifts with resolution
+# (x~0.36 at 1440p, x~0.45 at 1080p), so frame generously and let the regex find the 'N-N'.
 
 
 def read_stage_pil(img: "Image.Image", crop=STAGE_REGION) -> dict:
