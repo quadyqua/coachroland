@@ -21,7 +21,8 @@ from . import compguide
 load_dotenv()
 
 STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
-         "shop": [], "econ": None, "items": [], "bench": [], "stage": None, "gold": None, "level": None}
+         "shop": [], "econ": None, "items": [], "bench": [], "stage": None,
+         "contested": [], "traits": [], "gold": None, "level": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -65,6 +66,9 @@ _SAMPLE = {
          "stat": "Back-corner carry: longest time-to-death vs divers (meta)"},
     ],
     "gold": 3, "level": 6, "stage": "4-2",
+    "contested": ["Vex"],
+    "traits": [{"name": "Bastion", "count": 2}, {"name": "Stargazer", "count": 3},
+               {"name": "Rogue", "count": 1}],
     "shop": [
         {"name": "Kai'Sa", "cost": 2, "action": "buy", "carry": False},
         {"name": "Cho'Gath", "cost": 1, "action": "buy", "carry": False},
@@ -220,6 +224,9 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .mate{color:var(--blue);font-weight:600;}
 .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-right:9px;flex:none;}
 .empty{color:var(--mut);font-size:13px;}
+.debug{margin-top:14px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--mut);line-height:1.8;}
+.debug b{color:var(--tx);font-weight:500;}
+.debug .miss{color:var(--danger);}
 /* Your Comp panel — the "what am I building" board. */
 .compcard{background:#23242a;border:1px solid #3a3a44;}
 .compname{font-size:22px;font-weight:700;color:#e7d6e7;}
@@ -280,6 +287,8 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
   <div class="card"><h2>Positioning &middot; experimental</h2>
     <div id="pos"><div class="empty">Board-read positioning coming soon.</div></div></div>
 </div>
+
+<div id="debug" class="debug"></div>
 
 <script>
 // Deadlines for time-boxed choices live here so the countdown keeps ticking across
@@ -370,12 +379,28 @@ function renderItems(s){
       +(it.take?('take · '+(it.carry||'carry')):'skip')+'</div></div>';
   }).join('');
 }
+function renderDebug(s){
+  var el=document.getElementById("debug"); if(!el) return;
+  function part(label,val){
+    var has = val!==undefined && val!==null && String(val).length>0;
+    return '<b>'+label+'</b> '+(has?String(val):'<span class="miss">—</span>');
+  }
+  var carries=(((s.data||{}).players)||[]).filter(function(p){return p.unit;})
+    .map(function(p){return (p.name||'?')+':'+p.unit;});
+  var traits=(s.traits||[]).map(function(t){return t.name+(t.count!=null?' '+t.count:'');});
+  var shop=(s.shop||[]).map(function(x){return x.name;}).filter(Boolean);
+  el.innerHTML = part('reading · stage',s.stage)+' &middot; '+part('gold',s.gold)+' &middot; '
+    +part('lvl',s.level)+' &middot; '+part('shop',shop.join(', '))+'<br>'
+    +part('traits',traits.join(', '))+' &middot; '+part('carries seen',carries.join(', '))
+    +' &middot; '+part('contested',(s.contested||[]).join(', '));
+}
 function render(s){
   if(s.event==="game_over"){ deadlines={}; }   // clear stale clocks between games
   document.getElementById("comp").innerHTML=renderComp(s.comp);
   renderShop(s);
   renderBench(s);
   renderItems(s);
+  renderDebug(s);
   document.getElementById("sub").textContent =
     (s.event==="game_over"?"game over — session cleared":(s.ts?("updated "+s.ts):"waiting"));
   var adv=document.getElementById("advice");

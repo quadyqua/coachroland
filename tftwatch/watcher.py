@@ -285,7 +285,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "game_over",
                                            "data": None, "advice": [], "positioning": [], "comp": None,
                                            "shop": [], "econ": None, "items": [], "bench": [],
-                                           "stage": None, "gold": None, "level": None})
+                                           "stage": None, "contested": [], "traits": [],
+                                           "gold": None, "level": None})
                             else:
                                 print(f"[{time.strftime('%H:%M:%S')}] Game over — cleared session "
                                       f"memory; removed {removed} temp file(s).\n")
@@ -434,6 +435,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                    "advice": recs, "positioning": positioning, "comp": last_comp,
                                    "shop": shop_view, "econ": (econ[0] if econ else None),
                                    "items": item_view, "bench": bench_view, "stage": stage_read,
+                                   "contested": contested, "traits": traits_read,
                                    "gold": (self_read or {}).get("gold"),
                                    "level": (self_read or {}).get("level")})
                     elif recs:
