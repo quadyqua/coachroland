@@ -294,7 +294,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     self_read = None
                     if shop:
                         try:
-                            self_read = read_self_pil(full, model=TEXT_MODEL)
+                            self_read = (localvision.read_self_pil(full) if local_eyes
+                                         else read_self_pil(full, model=TEXT_MODEL))
                         except Exception as e:
                             print(f"  (shop read failed: {e})")
 
@@ -303,7 +304,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     traits_read = None
                     if brain_on:
                         try:
-                            traits_read = read_traits_pil(full, model=TEXT_MODEL).get("traits")
+                            traits_read = (localvision.read_traits_pil(full) if local_eyes
+                                           else read_traits_pil(full, model=TEXT_MODEL)).get("traits")
                         except Exception as e:
                             print(f"  (trait read failed: {e})")
 
