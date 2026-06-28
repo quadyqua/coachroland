@@ -88,6 +88,26 @@ def test_level_pacing():
     assert coach.level_pacing(None, 5, "flex") == []
 
 
+def test_postgame_review_summary():
+    from tftwatch import review
+    part = {
+        "placement": 3, "level": 8, "last_round": 32,
+        "units": [
+            {"character_id": "TFT17_Jhin", "tier": 2,
+             "itemNames": ["TFT_Item_InfinityEdge", "TFT_Item_LastWhisper", "TFT_Item_GuardianAngel"]},
+            {"character_id": "TFT17_Caitlyn", "tier": 2, "itemNames": []},
+        ],
+        "traits": [{"name": "TFT17_Bastion", "num_units": 2, "style": 1}],
+        "augments": [],
+    }
+    s = review.summarize_participant(part)
+    assert s["placement"] == 3 and s["level"] == 8
+    assert s["carry"]["name"] == "Jhin" and len(s["carry"]["items"]) == 3   # most items -> carry
+    assert s["comp_match"]                                                   # matched a Jhin comp
+    tk = review.takeaways(s)
+    assert any("Placed 3" in t for t in tk) and any("Jhin" in t for t in tk)
+
+
 def test_ledger_accumulates_contest():
     from tftwatch.ledger import Ledger
     L = Ledger()

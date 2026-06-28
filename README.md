@@ -59,6 +59,17 @@ python -m tftwatch.cli scout "Name#EUW" --matches 25 --platform euw1 --region eu
 Gives, per opponent: rank, most-played comps (avg placement), and a next-game prediction;
 plus the lobby-wide contested-lines read.
 
+## Post-game review
+
+```bash
+python -m tftwatch.review "Name#TAG"      # break down your last game
+```
+
+Pulls your most recent match from the Riot API and reviews it for learning: placement,
+your carry + items (vs. BIS), comp match, traits, augments, level. This is where
+stat-heavy analysis lives — Riot's TFT policy keeps win-rates/placements out of *live*
+play, but post-game is fine. Needs a Riot key in `.env`.
+
 ## What works vs. WIP (honest)
 
 **Works, free, validated on real frames:**
