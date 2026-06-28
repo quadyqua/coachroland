@@ -8,6 +8,8 @@ Tracks a small in-memory history of THIS game's reads (structured data only, no
 images) to spot what changed. reset() wipes it between games so nothing piles up.
 """
 
+from collections import Counter
+
 from . import compguide
 
 NAME = "Coach Roland"
@@ -397,14 +399,16 @@ class CoachRoland:
                                 "buy"))
         return out
 
-    def shop_plan(self, shop, comp, gold=None, partner_comp=None, partner_name=None) -> list[dict]:
-        """Per-slot shop view for the dashboard strip — Double-Up aware.
+    def shop_plan(self, shop, comp, gold=None, partner_comp=None, partner_name=None,
+                  owned=None) -> list[dict]:
+        """Per-slot shop view for the dashboard strip — Double-Up + pair aware.
 
-        action: buy  = in YOUR comp, affordable (light it up)
-                lock = in YOUR comp but you're short on gold -> lock the shop to keep it
+        action: buy  = you want it (a PAIR you're collecting, or in your comp), affordable
+                lock = you want it but you're short on gold -> lock the shop to keep it
                 give = your PARTNER needs it -> buy and cannon it to them
                 None = nobody needs it (dim)
-        Your own needs outrank your partner's.
+        A "pair" (you already own a copy, or the same unit shows up twice in this shop) is a
+        top early-game buy regardless of comp. Your own needs outrank your partner's.
         """
         if not shop:
             return []
@@ -418,6 +422,9 @@ class CoachRoland:
 
         my_units, my_carry = unit_set(comp)
         p_units, p_carry = unit_set(partner_comp)
+        owned_set = {o.lower() for o in (owned or [])}
+        shop_counts = Counter((s or {}).get("name", "").lower() for s in shop if s and s.get("name"))
+
         view = []
         for s in shop:
             name = (s or {}).get("name") or None
@@ -426,14 +433,15 @@ class CoachRoland:
             affordable = gold is None or cost is None or gold >= cost
             is_my_carry = bool(name) and nl == my_carry
             mine = bool(name) and (is_my_carry or nl in my_units)
-            theirs = bool(name) and not mine and partner_comp and (nl == p_carry or nl in p_units)
+            pair = bool(name) and (nl in owned_set or shop_counts[nl] >= 2)
+            theirs = bool(name) and not mine and not pair and partner_comp and (nl == p_carry or nl in p_units)
             action, who = None, None
-            if mine:
+            if mine or pair:
                 action, who = ("buy" if affordable else "lock"), "you"
             elif theirs:
                 action, who = ("give" if affordable else None), "partner"
             view.append({"name": name, "cost": cost, "action": action, "carry": is_my_carry,
-                         "for": who, "partner": partner_name if theirs else None})
+                         "pair": pair, "for": who, "partner": partner_name if theirs else None})
         return view
 
     def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:

@@ -316,7 +316,8 @@ function renderShop(s){
     (s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
   document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
     var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':'slot dim'));
-    var tag=sl.action==='buy'?' · buy':(sl.action==='lock'?' · LOCK':(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
+    var tag=sl.action==='buy'?(sl.pair?' · pair':' · buy')
+      :(sl.action==='lock'?' · LOCK':(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
     return '<div class="'+cls+'"><div class="sn">'+(sl.name||'—')+(sl.carry?' ★':'')+
       '</div><div class="sc">'+(sl.cost!=null?sl.cost+'g':'')+tag+'</div></div>';
   }).join('') : '<div class="empty" style="grid-column:1/-1">No shop read — run with --shop.</div>';
