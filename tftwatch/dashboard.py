@@ -21,7 +21,7 @@ from . import compguide
 load_dotenv()
 
 STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
-         "shop": [], "econ": None, "gold": None, "level": None}
+         "shop": [], "econ": None, "items": [], "gold": None, "level": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -75,6 +75,11 @@ _SAMPLE = {
     "econ": {"text": "Save and build econ", "severity": "info",
              "why": "Fast-9 board at 3 gold — hold toward 50 for interest, play your strongest board, "
                     "and slam item pieces. Roll at level 8."},
+    "items": [
+        {"name": "B.F. Sword", "take": True, "carry": "Jhin"},
+        {"name": "Tear of the Goddess", "take": False, "carry": "Jhin"},
+        {"name": "Recurve Bow", "take": True, "carry": "Jhin"},
+    ],
     "mode": "doubleup",
     "data": {
         "players": [
@@ -120,6 +125,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--board", action="store_true", help="also read your board for positioning (extra vision call)")
     p.add_argument("--augments", action="store_true", help="also read your active augments (extra vision call)")
     p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
+    p.add_argument("--items", action="store_true", help="read the item-choice screen -> highlight which go on your carry")
     p.add_argument("--rules-only", action="store_true", help="live: deterministic rules coach, no LLM brain")
     return p
 
@@ -149,7 +155,7 @@ def main() -> None:
             target=lambda: watch(on_update=_on_update, comp_key=args.comp,
                                  partner_name=args.partner, partner_comp_key=args.partner_comp,
                                  board=args.board, augments=args.augments, shop=args.shop,
-                                 use_brain=not args.rules_only),
+                                 items=args.items, use_brain=not args.rules_only),
             daemon=True).start()
         print("Live — open http://127.0.0.1:8765  (drag to monitor 2, fullscreen). Ctrl+C to stop.")
     app.run(host="127.0.0.1", port=8765, debug=False)
@@ -251,6 +257,9 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
   <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div>
   <div id="econ"></div></div>
 
+<div class="card" id="itemcard" style="display:none"><h2>Items offered &middot; take for your carry</h2>
+  <div id="items" class="shop"></div></div>
+
 <div class="card"><h2>Coach says</h2>
   <div id="advice"><div class="empty">Waiting for the lobby…</div></div></div>
 
@@ -324,10 +333,22 @@ function renderShop(s){
   document.getElementById("econ").innerHTML = s.econ
     ? '<div class="econ"><b>'+s.econ.text+'</b> — <span style="color:var(--mut)">'+(s.econ.why||'')+'</span></div>' : '';
 }
+function renderItems(s){
+  var its=s.items||[];
+  var card=document.getElementById("itemcard");
+  if(card){ card.style.display = its.length ? '' : 'none'; }
+  if(!its.length) return;
+  document.getElementById("items").innerHTML = its.map(function(it){
+    var cls = it.take ? 'slot buy' : 'slot dim';
+    return '<div class="'+cls+'"><div class="sn">'+(it.name||'?')+'</div><div class="sc">'
+      +(it.take?('take · '+(it.carry||'carry')):'skip')+'</div></div>';
+  }).join('');
+}
 function render(s){
   if(s.event==="game_over"){ deadlines={}; }   // clear stale clocks between games
   document.getElementById("comp").innerHTML=renderComp(s.comp);
   renderShop(s);
+  renderItems(s);
   document.getElementById("sub").textContent =
     (s.event==="game_over"?"game over — session cleared":(s.ts?("updated "+s.ts):"waiting"));
   var adv=document.getElementById("advice");

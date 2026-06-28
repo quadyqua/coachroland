@@ -10,7 +10,7 @@ images) to spot what changed. reset() wipes it between games so nothing piles up
 
 from collections import Counter
 
-from . import compguide
+from . import cdragon, compguide
 
 NAME = "Coach Roland"
 _MAX_HISTORY = 40
@@ -464,6 +464,32 @@ class CoachRoland:
         return [_rec("Save and build econ",
                      "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll later "
                      "at level 8.", "info")]
+
+    def item_choice(self, offered, comp) -> list[dict]:
+        """When you're offered items (armory/anvil), flag which belong on your carry.
+
+        Matches each offered item/component against the carry's BIS items + the
+        components that build them. Returns [{name, take, carry}] for the UI.
+        """
+        if not offered or not comp:
+            return []
+
+        def norm(x):
+            return "".join(ch for ch in (x or "").lower() if ch.isalnum())
+
+        want = set()
+        for key in ("carry_items", "carry_components", "flexible_components"):
+            for i in (comp.get(key) or []):
+                want.add(norm(i))
+                for part in cdragon.item_components(i):   # completed item -> its components
+                    want.add(norm(part))
+        carry = comp.get("carry") or "your carry"
+        out = []
+        for it in offered:
+            ni = norm(it)
+            take = bool(ni) and any(ni == w or (len(ni) >= 4 and (ni in w or w in ni)) for w in want)
+            out.append({"name": it, "take": take, "carry": carry})
+        return out
 
     # ---- formatting ----------------------------------------------------------
     def say(self, recs: list[dict]) -> str:

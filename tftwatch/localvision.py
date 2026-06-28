@@ -180,6 +180,23 @@ def read_traits(image_path: str, crop=TRAIT_REGION) -> dict:
     return read_traits_pil(Image.open(image_path).convert("RGB"), crop)
 
 
+# ---- item-choice screen (armory / anvil): which items are offered --------------
+# Items are icon-based and names are often multi-word, so this is best-effort text
+# capture; coach.item_choice fuzzy-matches the fragments against the carry's build.
+# Needs tuning on a real item-choice screenshot; region is a center guess.
+ITEM_REGION = (0.18, 0.28, 0.82, 0.74)
+
+
+def read_items_pil(img: "Image.Image", crop=ITEM_REGION) -> dict:
+    """{items:[name fragments]} — text detected on an item-choice screen (free OCR)."""
+    boxes = _boxes(_crop(img, crop))
+    return {"items": [b["text"] for b in boxes if sum(c.isalpha() for c in b["text"]) >= 3]}
+
+
+def read_items(image_path: str, crop=ITEM_REGION) -> dict:
+    return read_items_pil(Image.open(image_path).convert("RGB"), crop)
+
+
 if __name__ == "__main__":
     import sys
     import json

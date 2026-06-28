@@ -202,8 +202,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
           model: str = "gpt-4o", on_update=None,
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
-          offers: bool = False, use_brain: bool = True, brain_gap: float = 18.0,
-          local_eyes: bool = True) -> None:
+          offers: bool = False, items: bool = False, use_brain: bool = True,
+          brain_gap: float = 18.0, local_eyes: bool = True) -> None:
     """Watch the panel; read + coach when it changes and settles.
 
     use_brain — run the LLM reasoning brain (auto-off if no OPENAI_API_KEY); brain_gap
@@ -271,7 +271,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                             if on_update:
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "game_over",
                                            "data": None, "advice": [], "positioning": [], "comp": None,
-                                           "shop": [], "econ": None, "gold": None, "level": None})
+                                           "shop": [], "econ": None, "items": [],
+                                           "gold": None, "level": None})
                             else:
                                 print(f"[{time.strftime('%H:%M:%S')}] Game over — cleared session "
                                       f"memory; removed {removed} temp file(s).\n")
@@ -376,6 +377,14 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                                  self_read.get("gold"), partner_comp=partner_detail,
                                                  partner_name=partner_name, owned=owned_units)
                                  if self_read else [])
+                    item_view = []
+                    if items and last_comp:
+                        try:
+                            offered_items = localvision.read_items_pil(full).get("items") or []
+                            if offered_items:
+                                item_view = coach.item_choice(offered_items, last_comp)
+                        except Exception as e:
+                            print(f"  (item read failed: {e})")
                     econ = (coach.reroll_advice(self_read.get("gold"), self_read.get("level"),
                                                 (last_comp or {}).get("playstyle")) if self_read else [])
                     stamp = time.strftime('%H:%M:%S')
@@ -383,6 +392,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         on_update({"ts": stamp, "event": "read", "data": data,
                                    "advice": recs, "positioning": positioning, "comp": last_comp,
                                    "shop": shop_view, "econ": (econ[0] if econ else None),
+                                   "items": item_view,
                                    "gold": (self_read or {}).get("gold"),
                                    "level": (self_read or {}).get("level")})
                     elif recs:
@@ -417,6 +427,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--augments", action="store_true", help="also read your active augments (extra vision call)")
     p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
     p.add_argument("--offers", action="store_true", help="also read the God/augment choice screen -> advise which to pick (extra vision call)")
+    p.add_argument("--items", action="store_true", help="also read the item-choice screen -> highlight which go on your carry")
     p.add_argument("--rules-only", action="store_true", help="deterministic rules coach, no LLM brain")
     p.add_argument("--llm-eyes", action="store_true", help="use the paid gpt-4o lobby reader instead of free local OCR")
     return p
@@ -431,4 +442,4 @@ if __name__ == "__main__":
     else:
         watch(comp_key=args.comp, partner_name=args.partner, partner_comp_key=args.partner_comp,
               board=args.board, augments=args.augments, shop=args.shop, offers=args.offers,
-              use_brain=not args.rules_only, local_eyes=not args.llm_eyes)
+              items=args.items, use_brain=not args.rules_only, local_eyes=not args.llm_eyes)

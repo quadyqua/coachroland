@@ -65,9 +65,24 @@ def _load() -> None:
             api = t.get("apiName")
             if api:
                 _trait_name[api] = t.get("name") or humanize(api)
+    # items are top-level (shared across sets) — build completed-item -> components recipe
+    item_name = {it["apiName"]: it.get("name") for it in data.get("items", []) if it.get("apiName")}
+    for it in data.get("items", []):
+        comp, nm = it.get("composition"), it.get("name")
+        if comp and nm:
+            parts = [item_name.get(c) for c in comp if item_name.get(c)]
+            if parts:
+                _item_components[nm.lower()] = parts
 
 
 _roster: list[str] = []
+_item_components: dict = {}   # completed item name (lower) -> [component display names]
+
+
+def item_components(name: str) -> list:
+    """Component display names that build a completed item (from CDragon recipes)."""
+    _load()
+    return _item_components.get((name or "").lower(), [])
 
 
 def current_roster() -> list[str]:
