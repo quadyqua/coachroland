@@ -35,6 +35,7 @@ from . import compguide
 from . import brain
 from . import localvision
 from .ledger import Ledger
+from .tracker import PurchaseTracker
 from .vision import (read_lobby_pil, read_board_pil, read_augments_pil, read_self_pil,
                      read_traits_pil, read_offer_pil, _crop_region, RIGHT_PANEL)
 from .coach import CoachRoland
@@ -217,6 +218,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
     atexit.register(purge_captures)
     coach = CoachRoland()
     ledger = Ledger()
+    owned_tracker = PurchaseTracker()   # infers your bought units from shop diffs (no bench read)
     my_comp, my_plan, teammate_comp = _comp_context(comp_key, partner_name, partner_comp_key)
     partner_detail = compguide.comp_detail(partner_comp_key) if partner_comp_key else None
     brain_on = use_brain and bool(os.getenv("OPENAI_API_KEY"))
@@ -277,6 +279,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         if empty_reads >= 2:
                             coach.reset()
                             ledger.reset()
+                            owned_tracker.reset()
                             last_brain_recs = []
                             last_comp = compguide.comp_detail(comp_key) if comp_key else None
                             hp_hist.clear()
@@ -320,6 +323,9 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                          else read_self_pil(full, model=TEXT_MODEL))
                         except Exception as e:
                             print(f"  (shop read failed: {e})")
+                    if self_read:                          # infer purchases from shop diffs
+                        owned_tracker.update([s.get("name") for s in (self_read.get("shop") or [])],
+                                             self_read.get("gold"))
 
                     # Traits = ground truth for which comp you're building -> read whenever the
                     # brain is on, so the comp pick is grounded in YOUR board, not random.
@@ -338,13 +344,11 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         except Exception as e:
                             print(f"  (stage read failed: {e})")
 
-                    # Bench is read FREE every cycle by portrait (icon match) -> always know
-                    # what you own, so "pairs with a unit you have" fires without the paid board.
-                    # Bench unit recognition by CDragon-icon matching proved unreliable on real
-                    # frames (rendered tiles ~= noise vs the flat assets), so it's disabled to avoid
-                    # false "pair" advice. Shop-duplicate pairs (OCR names) still work. Re-enable
-                    # once a real-frame template/classifier recognizer exists. See BENCH_REGION note.
-                    owned_units, bench_view = [], []
+                    # Bench tiles are icons (recognition unreliable), so "what you own" is INFERRED
+                    # from shop diffs (PurchaseTracker): units that left the shop while the rest
+                    # stayed = bought. Approximate (drifts on sells/combines/cannon) but free and no
+                    # vision. This powers "pairs with a unit you own" without reading the bench.
+                    owned_units, bench_view = list(owned_tracker.owned()), []
 
                     # Board read adds on-board units + positioning (paid; bench already covered above).
                     positioning = []

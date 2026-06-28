@@ -108,6 +108,20 @@ def test_postgame_review_summary():
     assert any("Placed 3" in t for t in tk) and any("Jhin" in t for t in tk)
 
 
+def test_purchase_tracker_infers_buys():
+    from tftwatch.tracker import PurchaseTracker
+    t = PurchaseTracker()
+    t.update(["Talon", "Caitlyn", "Zoe", "Jax", "Illaoi"], gold=5)
+    t.update(["Talon", "Zoe", "Jax", "Illaoi"], gold=4)        # Caitlyn left + gold drop -> buy
+    assert t.owned().count("Caitlyn") == 1
+    t.update(["Gnar", "Vex", "Nami", "Poppy", "Fizz"], gold=2)  # whole shop changed -> reroll, ignore
+    assert "Gnar" not in t.owned()
+    t.update(["Vex", "Nami", "Poppy", "Fizz"], gold=1)         # Gnar left + gold drop -> buy
+    assert t.owned().count("Gnar") == 1
+    t.update(["Vex", "Nami", "Poppy"], gold=1)                 # Fizz gone but gold same -> not a buy
+    assert "Fizz" not in t.owned()
+
+
 def test_ledger_accumulates_contest():
     from tftwatch.ledger import Ledger
     L = Ledger()
