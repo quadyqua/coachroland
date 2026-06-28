@@ -180,7 +180,7 @@ def read_traits(image_path: str, crop=TRAIT_REGION) -> dict:
 
 
 # ---- stage / round indicator (top center, e.g. "2-1") -> free, unlocks timing advice
-STAGE_REGION = (0.44, 0.0, 0.56, 0.045)
+STAGE_REGION = (0.34, 0.012, 0.42, 0.05)
 
 
 def read_stage_pil(img: "Image.Image", crop=STAGE_REGION) -> dict:
@@ -244,7 +244,9 @@ def read_augments(image_path: str, crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> 
 # ---- bench: which units you own, by PORTRAIT (free icon match, no OCR) ----------
 # Recognizing the tile tells us the champion AND its cost (cdragon), so this is the
 # free, always-on "what's on my bench" read that powers pair detection.
-BENCH_REGION = (0.09, 0.66, 0.91, 0.75)   # the 9-slot bench row; tune on a real frame
+BENCH_REGION = (0.10, 0.79, 0.77, 0.855)   # 9-slot bench row, just above the shop; UNVALIDATED
+# ^ both calibration fixtures had empty benches, so this is an informed guess (the bench sits
+#   between the board and the shop bar). Needs a frame WITH benched units to lock in. on a real frame
 BENCH_SLOTS = 9
 
 
