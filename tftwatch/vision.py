@@ -15,6 +15,17 @@ import base64
 from PIL import Image
 from openai import OpenAI
 
+from . import cdragon
+
+
+def _roster_clause() -> str:
+    """A prompt clause pinning champion reads to the real current-set roster."""
+    roster = cdragon.current_roster()
+    if not roster:
+        return ""
+    return ("\n\nEvery champion name you report MUST be one of these (this set's roster — "
+            "pick the closest match, never invent one):\n" + ", ".join(roster))
+
 # The player list lives in the right strip of a 16:9 TFT screen. Fractions of the
 # full frame: (left, top, right, bottom). Left edge stays loose because an expanded
 # (starred-up) row grows leftward. Tune if your HUD scale differs.
@@ -70,6 +81,12 @@ def _b64(img: "Image.Image") -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def _parse(resp) -> dict:
+    """Parse a JSON response, tolerating an empty/None body (happens mid-transition)."""
+    content = resp.choices[0].message.content
+    return json.loads(content) if content else {}
+
+
 def read_lobby_pil(img: "Image.Image", model: str = "gpt-4o", crop=RIGHT_PANEL) -> dict:
     """Full-screen PIL image -> {players:[...], next_opponent}. Crops the panel itself."""
     b64 = _b64(_crop_region(img, crop))
@@ -86,7 +103,7 @@ def read_lobby_pil(img: "Image.Image", model: str = "gpt-4o", crop=RIGHT_PANEL) 
             ],
         }],
     )
-    return json.loads(resp.choices[0].message.content)
+    return _parse(resp)
 
 
 def read_lobby(image_path: str, model: str = "gpt-4o", crop=RIGHT_PANEL) -> dict:
@@ -126,7 +143,7 @@ def read_board_pil(img: "Image.Image", model: str = "gpt-4o", crop=BOARD_REGION)
             ],
         }],
     )
-    return json.loads(resp.choices[0].message.content)
+    return _parse(resp)
 
 
 def read_board(image_path: str, model: str = "gpt-4o", crop=BOARD_REGION) -> dict:
@@ -159,11 +176,93 @@ def read_augments_pil(img: "Image.Image", model: str = "gpt-4o", crop=AUGMENT_RE
             ],
         }],
     )
-    return json.loads(resp.choices[0].message.content)
+    return _parse(resp)
 
 
 def read_augments(image_path: str, model: str = "gpt-4o", crop=AUGMENT_REGION) -> dict:
     return read_augments_pil(Image.open(image_path).convert("RGB"), model, crop)
+
+
+# ---- the bottom HUD bar: shop + gold + level (the "buy this" reader) ----------
+# The shop cards, gold, and level live along the very bottom of the screen. The
+# champion NAME is printed on each card and the gold/level are printed numbers, so
+# this read is reliable (unlike the board). Tune the region if your HUD scale differs.
+SELF_REGION = (0.12, 0.80, 0.82, 1.0)
+
+_SELF_PROMPT = """You are reading the BOTTOM HUD BAR of a Teamfight Tactics screenshot.
+
+Report exactly:
+- gold: the player's current gold — the number next to the gold/coin icon (center).
+- level: the player's current level — e.g. "Lvl 5" on the left.
+- shop: the 5 champion cards along the bottom, LEFT TO RIGHT. For each card read the
+  champion NAME printed at the bottom of the card, and its COST (1-5, the small number
+  by a coin in the card's lower-right). An empty / already-bought slot is null.
+
+Return STRICT JSON, no prose:
+{"gold": <int or null>, "level": <int or null>,
+ "shop": [{"name": "<champion or null>", "cost": <int or null>}, ... up to 5 ...]}
+Read the printed names and numbers exactly. Do not invent champions."""
+
+
+def read_self_pil(img: "Image.Image", model: str = "gpt-4o", crop=SELF_REGION) -> dict:
+    """Full-screen PIL -> {gold, level, shop:[{name,cost}]}. Crops the bottom bar itself."""
+    b64 = _b64(_crop_region(img, crop))
+    resp = _client().chat.completions.create(
+        model=model,
+        temperature=0,
+        response_format={"type": "json_object"},
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": _SELF_PROMPT + _roster_clause()},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:image/png;base64,{b64}", "detail": "high"}},
+            ],
+        }],
+    )
+    return _parse(resp)
+
+
+def read_self(image_path: str, model: str = "gpt-4o", crop=SELF_REGION) -> dict:
+    return read_self_pil(Image.open(image_path).convert("RGB"), model, crop)
+
+
+# ---- the trait panel: what comp you're ACTUALLY building (the anti-random read) ----
+# The left-side trait list is printed TEXT (name + active count), so it reads reliably and
+# is the ground truth for which comp the player is forming. Without it the coach guesses.
+TRAIT_REGION = (0.0, 0.13, 0.135, 0.58)
+
+_TRAITS_PROMPT = """You are reading the ACTIVE TRAITS panel on the LEFT side of a Teamfight Tactics
+screenshot. Each row shows a trait icon, a NUMBER (how many units the player has in that
+trait right now), and the trait NAME. List EVERY trait row you can read, with its current
+count. Rows that are brighter / higher up are the player's main traits.
+
+Return STRICT JSON, no prose:
+{"traits": [{"name": "<trait name>", "count": <int>}, ...]}
+Read the printed trait names and numbers exactly. Do not invent traits."""
+
+
+def read_traits_pil(img: "Image.Image", model: str = "gpt-4o", crop=TRAIT_REGION) -> dict:
+    """Full-screen PIL -> {traits:[{name,count}]} — the player's active traits (their comp)."""
+    b64 = _b64(_crop_region(img, crop))
+    resp = _client().chat.completions.create(
+        model=model,
+        temperature=0,
+        response_format={"type": "json_object"},
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": _TRAITS_PROMPT},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:image/png;base64,{b64}", "detail": "high"}},
+            ],
+        }],
+    )
+    return _parse(resp)
+
+
+def read_traits(image_path: str, model: str = "gpt-4o", crop=TRAIT_REGION) -> dict:
+    return read_traits_pil(Image.open(image_path).convert("RGB"), model, crop)
 
 
 if __name__ == "__main__":

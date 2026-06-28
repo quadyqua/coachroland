@@ -67,6 +67,31 @@ def _load() -> None:
                 _trait_name[api] = t.get("name") or humanize(api)
 
 
+_roster: list[str] = []
+
+
+def current_roster() -> list[str]:
+    """Display names of the playable champions in the CURRENT TFT set.
+
+    Used to CONSTRAIN vision reads to the real roster so the model can't hallucinate
+    a champion — it must pick a name that actually exists this set. Returns [] if the
+    CDragon data isn't available (offline), in which case reads stay unconstrained.
+    """
+    _load()
+    if _roster:
+        return _roster
+    try:
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        sets = data.get("setData", [])
+        latest = max(sets, key=lambda s: s.get("number") or 0)
+        names = sorted({c.get("name") for c in latest.get("champions", [])
+                        if c.get("name") and c.get("cost") and c.get("traits")})
+        _roster.extend(names)
+    except Exception:
+        pass
+    return _roster
+
+
 def champ_name(api: str) -> str:
     _load()
     return _champ_name.get(api) or humanize(api)

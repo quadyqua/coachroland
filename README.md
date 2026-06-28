@@ -48,7 +48,11 @@ python -m tftwatch.cli scout --from-lobby "You#NA1"
   board/bench/items on demand.
 - **Phase 2** — reasoning engine: combine live boards + histories + meta into
   counter/positioning advice with a natural-language "why".
-- **Phase 3** — overlay (Overwolf, Riot-allowlisted) for in-game display.
+
+Coach Roland only ever **observes and suggests** — it reads your own screen and
+public data, then advises. It never automates input, never reads game memory, and
+never displays as an in-game overlay; advice lives in a separate window you keep on
+a second monitor. Every call stays yours to make.
 
 ## Notes
 

@@ -14,79 +14,269 @@ Using public comp guides for your own play is in the allowed zone (no hidden inf
 # playstyle: "fast9" (weak early, scales to legendaries) | "reroll" (strong now, caps low)
 #            | "flex" (adapts)
 # double_up: short note on team fit (frontline anchor vs backline carry, reinforce value)
+# `traits`: the trait(s) that DEFINE the comp — used to match your live trait read to the
+# right comp. `final_board`: the level 8-9 board. Curated from tftacademy (Set 17, patch 17.6).
 COMPS = {
-    "vex_fast9": {
-        "name": "Vex Fast 9", "carry": "Vex", "playstyle": "fast9", "tier": "S",
-        "double_up": "Strong, but you're weak until 8-9 — lean on your partner to cover early.",
-        "counters": ["Weak early — punish before they hit 9", "Reposition vs assassins"],
-        "source": "bunnymuffins (17.6)"},
-    "jhin_fast9": {
-        "name": "Jhin Fast 9", "carry": "Jhin", "carry_cost": 4, "playstyle": "fast9", "tier": "A",
-        "carry_items": ["Red Buff", "Striker's Flail", "Last Whisper"],
-        "carry_components": ["Recurve Bow", "B.F. Sword", "Sparring Gloves"],
-        "early_units": ["Caitlyn", "Talon", "Aatrox", "Jax"],
-        "early_alt": ["Timebreaker opener", "Graves", "Vex", "Sona", "Fiora"],
-        "flexible_components": ["B.F. Sword", "Recurve Bow"],
-        "level_plan": "Stage 2 win-streak (slam items), econ to fast 8, roll for Jhin at 8-9.",
-        "double_up": "Backline carry — pair with a frontline partner; reinforce them once you win.",
-        "counters": ["Squishy backline — gets dived; corner Jhin", "Weak early"],
-        "source": "metasrc / tftacademy (17.6)"},
-    "mecha": {
-        "name": "Mecha", "carry": "flex", "playstyle": "flex", "tier": "A",
-        "double_up": "Transform tempo spikes — good reinforce value.",
+    "dark_star_jhin": {
+        "name": "Dark Star Flex (Jhin)", "carry": "Jhin", "playstyle": "fast9", "tier": "S",
+        "traits": ["Dark Star", "Sniper"],
+        "carry_items": ["Last Whisper", "Deathblade", "Infinity Edge"],
+        "early_units": ["Kai'Sa", "Karma", "Cho'Gath"],
+        "final_board": ["Tahm Kench", "Cho'Gath", "Nunu", "Mordekaiser", "Galio", "Bard", "Karma", "Kai'Sa", "Jhin"],
+        "level_plan": "Aim for 6 Dark Star. Win-streak stage 2, push to 8 then 9 — Jhin is the cap, Kai'Sa secondary.",
+        "double_up": "Backline carry — pair with a frontline partner; the cleanest S-tier pick.",
+        "counters": ["Dive the squishy backline", "Corner Jhin"],
+        "source": "tftacademy (17.6)"},
+    "stargazer_xayah": {
+        "name": "Xayah Stargazer", "carry": "Xayah", "playstyle": "fast8", "tier": "S",
+        "traits": ["Stargazer", "Vanguard", "Bastion"],
+        "carry_items": ["Runaan's Hurricane", "Runaan's Hurricane", "Rapid Firecannon"],
+        "early_units": ["Samira", "Aatrox", "Jax"],
+        "final_board": ["Aatrox", "Jax", "Maokai", "Rhaast", "Nunu", "Tahm Kench", "Xayah", "Jhin"],
+        "level_plan": "Samira as temp carry early. Level to 8, roll for Xayah 2 + upgraded frontline.",
+        "double_up": "Backline carry behind a Vanguard/Bastion wall — partner can frontline.",
+        "counters": ["Gap-close to Xayah", "Sustained frontline"],
+        "source": "tftacademy (17.6)"},
+    "nova_vex": {
+        "name": "N.O.V.A. Vex (9-5)", "carry": "Vex", "playstyle": "fast9", "tier": "A",
+        "traits": ["N.O.V.A.", "Vanguard"],
+        "carry_items": ["Guinsoo's Rageblade", "Rabadon's Deathcap", "Rapid Firecannon"],
+        "early_units": ["Graves", "Akali", "Fiora"],
+        "final_board": ["Relic", "Aatrox", "Akali", "Rhaast", "Nunu", "Shen", "Blitzcrank", "Fiora", "Graves", "Vex"],
+        "level_plan": "AD win-streak opener (Graves/Vex items). Push level 9 by stage 4, stay above 80 HP.",
+        "double_up": "Backline carry — strong N.O.V.A. frontline lets your partner go damage.",
+        "counters": ["Weak early — punish before 9", "Reposition vs assassins"],
+        "source": "tftacademy (17.6)"},
+    "space_groove": {
+        "name": "Space Groove (In The Groove)", "carry": "Nami", "playstyle": "fast8", "tier": "B",
+        "traits": ["Space Groove"],
+        "carry_items": ["Leviathan", "Jeweled Gauntlet", "Giant's Belt"],
+        "early_units": ["Nami", "Riven", "Nunu", "Blitzcrank"],
+        "final_board": ["Gwen", "Pantheon", "Ornn", "Nunu", "Tahm Kench", "Nami", "Riven", "Shen", "Blitzcrank"],
+        "level_plan": "Get 5 Space Groove active. Fast 8, play around Nami / Riven / Nunu / Blitzcrank.",
+        "double_up": "Frontline-heavy AP line — solid team anchor.",
+        "counters": ["Burst the backline before it ramps"],
+        "source": "tftacademy (17.6)"},
+    "mecha_sol": {
+        "name": "Mecha Aurelion Sol", "carry": "Aurelion Sol", "playstyle": "fast8", "tier": "A",
+        "traits": ["Mecha", "Brawler", "Voyager"],
+        "carry_items": ["Rabadon's Deathcap", "Statikk Shiv", "Jeweled Gauntlet"],
+        "early_units": ["Aurelion Sol", "Morgana", "Rhaast"],
+        "final_board": ["Aurelion Sol", "Karma", "Galio", "Rhaast", "Mordekaiser", "Morgana", "Blitzcrank"],
+        "level_plan": "Loss-streak stage 2 for items. Level 6/7 standard, then 8 and roll hard for 2-star Mecha.",
+        "double_up": "Transform tempo spikes — good reinforce value as a flex anchor.",
         "counters": ["Sustained true/magic damage through the transform"],
-        "source": "bunnymuffins (17.6)"},
+        "source": "tftacademy (17.6)"},
     "samira_reroll": {
         "name": "Two Tanky Samira Reroll", "carry": "Samira", "playstyle": "reroll", "tier": "A",
-        "double_up": "Strong NOW, caps low — win early or you fade late vs fast-9 teams.",
+        "traits": ["Sniper", "Space Groove"],
+        "carry_items": ["Spear of Shojin", "Deathblade", "Last Whisper"],
+        "early_units": ["Samira", "Ornn", "Nasus"],
+        "final_board": ["Nasus", "Ornn", "Samira", "Nami", "Blitzcrank", "Jhin"],
+        "level_plan": "Needs the Two Tanky augment. Slow-roll stage 4 for 3-star Samira behind Ornn + Nasus.",
+        "double_up": "Strong NOW, caps low — win early or fade vs fast-9 teams.",
         "counters": ["Out-scaled late by legendaries", "Bramble/Steadfast vs her bursts"],
-        "source": "bunnymuffins (17.6)"},
-    "brawler_yi": {
-        "name": "Brawler Yi", "carry": "Master Yi", "playstyle": "reroll", "tier": "A",
+        "source": "tftacademy (17.6)"},
+    "yi_marauder": {
+        "name": "Yi Marawlers (Master Yi)", "carry": "Master Yi", "playstyle": "fast8", "tier": "A",
+        "traits": ["Marauder", "Brawler", "Psionic", "N.O.V.A.", "Challenger"],
+        "carry_items": ["Guardian Angel", "Madred's Bloodrazor", "Guinsoo's Rageblade"],
+        "early_units": ["Master Yi", "Gragas", "Urgot"],
+        "final_board": ["Master Yi", "Kindred", "Tahm Kench", "Maokai", "Gragas", "Fiora", "Bel'Veth", "Urgot"],
+        "level_plan": "4-cost Fast 8. Level 8 at natural intervals, roll for Master Yi 2 with upgraded Brawlers.",
         "double_up": "Yi dives backlines — pair with a tanky partner.",
         "counters": ["CC (stun/chill) shuts Yi down", "Bramble vs crit", "Corner to bait him"],
-        "source": "bunnymuffins (17.6)"},
+        "source": "tftacademy (17.6)"},
     "primordian_jinx": {
-        "name": "Primordian Jinx", "carry": "Jinx", "playstyle": "flex", "tier": "A",
+        "name": "Primordian Jinx", "carry": "Jinx", "playstyle": "reroll", "tier": "A",
+        "traits": ["Primordian", "Challenger", "Marauder"],
+        "carry_items": ["Rapid Firecannon", "Deathblade", "Last Whisper"],
+        "early_units": ["Rek'Sai", "Bel'Veth", "Akali"],
+        "final_board": ["Briar", "Akali", "Bel'Veth", "Jinx", "Maokai", "Rhaast", "Kindred", "Rek'Sai"],
+        "level_plan": "Win-streak Primordian early. Slow-roll above 50g for 3-star Jinx; add Kindred at 7, Rhaast at 8.",
         "double_up": "Backline hyper-carry — needs frontline cover from partner.",
         "counters": ["Dive her backline before she ramps", "Corner her"],
-        "source": "bunnymuffins (17.6)"},
-    "lissandra_reroll": {
-        "name": "Lissandra Reroll", "carry": "Lissandra", "playstyle": "reroll", "tier": "A",
-        "double_up": "AP reroll, strong mid — win the tempo window.",
-        "counters": ["MR items / out-scale late"],
-        "source": "bunnymuffins (17.6)"},
-    "meeple_veigar": {
-        "name": "Meeple Veigar", "carry": "Veigar", "playstyle": "reroll", "tier": "A",
+        "source": "tftacademy (17.6)"},
+    "primordian_reroll": {
+        "name": "Primordian Briar (Reroll)", "carry": "Briar", "playstyle": "reroll", "tier": "B",
+        "traits": ["Primordian", "Rogue"],
+        "carry_items": ["Sterak's Gage", "Titan's Resolve", "Bloodthirster"],
+        "early_units": ["Cho'Gath", "Rek'Sai", "Bel'Veth"],
+        "final_board": ["Cho'Gath", "Briar", "Rek'Sai", "Bel'Veth", "Kindred", "Kai'Sa", "Akali", "Rhaast", "Jhin"],
+        "level_plan": "Beginner-friendly. Field 3 Primordians stage 2, slow-roll stage 3-4 for 3-stars, cap at 9 with Jhin.",
+        "double_up": "Bruiser frontline-carry — a forgiving anchor for a backline partner.",
+        "counters": ["Out-scaled late", "Anti-heal vs Briar"],
+        "source": "tftacademy (17.6)"},
+    "veigar_printer": {
+        "name": "Veigar Printer (Meeple)", "carry": "Veigar", "playstyle": "reroll", "tier": "A",
+        "traits": ["Meeple", "Bastion", "Dark Star"],
+        "carry_items": ["Leviathan", "Leviathan", "Jeweled Gauntlet"],
+        "early_units": ["Veigar", "Poppy", "Lissandra"],
+        "final_board": ["Veigar", "Poppy", "Lissandra", "Ivern Minion", "Mordekaiser", "Illaoi", "Rammus", "Bard"],
+        "level_plan": "AP win-streak with Veigar 2 stage 2. Slow-roll above 50g for 3-star Veigar/Poppy/Lissandra.",
         "double_up": "AP reroll — caps low, push your early advantage.",
         "counters": ["MR / Dodge", "Out-scaled late"],
-        "source": "bunnymuffins (17.6)"},
-    "vanguard_fast9": {
-        "name": "Vanguard Fast 9", "carry": "flex", "playstyle": "fast9", "tier": "A",
-        "double_up": "Heavy frontline — great as the team's anchor; partner brings damage.",
-        "counters": ["Armor pen / magic / sustained DPS chews the frontline", "Weak early"],
-        "source": "bunnymuffins (17.6)"},
-    "darkstar_sniper": {
-        "name": "Dark Star Sniper", "carry": "Sniper", "playstyle": "flex", "tier": "A (Double Up)",
-        "double_up": "Top Double Up pick by data — long-range backline carry; partner frontlines.",
-        "counters": ["Dive / gap-close to the snipers", "Corner protects them"],
-        "source": "metasrc Double Up (17.5)"},
-    "nova_challenger": {
-        "name": "N.O.V.A. Challenger", "carry": "flex", "playstyle": "flex", "tier": "A (Double Up)",
-        "double_up": "Strong Double Up — fast attackers, good reinforce value.",
-        "counters": ["CC + frontline to absorb the dive"],
-        "source": "metasrc Double Up (17.5)"},
-    "heatdeath_morde": {
-        "name": "Heat Death Mordekaiser", "carry": "Mordekaiser", "carry_cost": 2,
-        "playstyle": "reroll", "tier": "B",
-        "carry_items": ["Void Staff", "Morellonomicon", "Jeweled Gauntlet"],
-        "carry_components": ["Needlessly Large Rod", "Tear", "Sparring Gloves"],
-        "early_units": ["Mordekaiser", "Leona"], "early_alt": ["Primordian opener", "Timebreaker"],
-        "flexible_components": ["Needlessly Large Rod", "Tear"],
-        "level_plan": "Level 4/5/6 on upgrades, slow-roll at 6 to 2-star Morde + a tank.",
-        "double_up": "Bruiser frontline-carry — a solid anchor for a backline partner.",
-        "counters": ["Magic resist / anti-heal (Morello mirror)", "Out-scaled late"],
-        "source": "tftflow / mobalytics (17.6)"},
+        "source": "tftacademy (17.6)"},
+    "darkstar_lissandra": {
+        "name": "Dark Star Lissandra", "carry": "Lissandra", "playstyle": "reroll", "tier": "A",
+        "traits": ["Dark Star", "Anima", "Vanguard"],
+        "carry_items": ["Jeweled Gauntlet", "Leviathan", "Leviathan"],
+        "early_units": ["Lissandra", "Cho'Gath"],
+        "final_board": ["Lissandra", "Cho'Gath", "Ezreal", "Mordekaiser", "Pantheon", "Kai'Sa", "Karma", "Galio", "Jhin"],
+        "level_plan": "Win-streak with Lissandra 2 + AP items stage 2. Slow-roll above 50g for Lissandra/Cho 3, aim 6 Dark Star.",
+        "double_up": "AP frontline-carry — strong mid, win the tempo window.",
+        "counters": ["MR items / out-scale late"],
+        "source": "tftacademy (17.6)"},
+    "vanguard_zoe": {
+        "name": "Vanguard Zoe", "carry": "Zoe", "playstyle": "reroll", "tier": "C",
+        "traits": ["Vanguard", "Shepherd"],
+        "carry_items": ["Jeweled Gauntlet", "Power Gauntlet", "Rabadon's Deathcap"],
+        "early_units": ["Zoe", "Leona", "Mordekaiser"],
+        "final_board": ["Zoe", "Leona", "Mordekaiser", "Illaoi", "Leblanc", "Karma", "Nunu", "Bard"],
+        "level_plan": "Win-streak Zoe/Leona stage 2. Level 6 and roll for 4 Vanguard + 3 Shepherd, 3-star Leona.",
+        "double_up": "Heavy frontline anchor — partner brings the damage.",
+        "counters": ["Armor pen / sustained DPS chews the frontline"],
+        "source": "tftacademy (17.6)"},
+    "shepherd_pie": {
+        "name": "Shepherd Pie (LeBlanc)", "carry": "LeBlanc", "playstyle": "fast8", "tier": "A",
+        "traits": ["Shepherd", "Vanguard", "Summon"],
+        "carry_items": ["Guinsoo's Rageblade", "Madred's Bloodrazor", "Archangel's Staff"],
+        "early_units": ["LeBlanc", "Karma", "Lissandra"],
+        "final_board": ["LeBlanc", "Karma", "Lissandra", "Sona", "Morgana", "Illaoi", "Blitzcrank", "Ivern Minion"],
+        "level_plan": "Level to 8 and roll heavily for 5 Shepherd + a Vanguard frontline.",
+        "double_up": "AP backline carry behind a Vanguard wall.",
+        "counters": ["MR items", "Dive the backline"],
+        "source": "tftacademy (17.6)"},
+    "gnar_printer": {
+        "name": "Gnar Printer (Meeple)", "carry": "Gnar", "playstyle": "reroll", "tier": "B",
+        "traits": ["Meeple", "Timebreaker"],
+        "carry_items": ["Guinsoo's Rageblade", "Deathblade", "Infinity Edge"],
+        "early_units": ["Gnar", "Poppy"],
+        "final_board": ["Gnar", "Poppy", "Ivern Minion", "Rammus", "Karma", "Galio", "Bard", "Jhin"],
+        "level_plan": "Print Gnar 3-star with 7 Meeple at level 8, then drop to 5 Meeple and push 9 for 5-costs.",
+        "double_up": "Meeple reroll — strong board quality, good anchor.",
+        "counters": ["Out-scaled by 5-costs late"],
+        "source": "tftacademy (17.6)"},
+    "ap_shepherd_sona": {
+        "name": "AP Shepherd (Sona 9-5)", "carry": "Sona", "playstyle": "fast9", "tier": "B",
+        "traits": ["Invoker", "Shepherd", "Vanguard"],
+        "carry_items": ["Blue Buff", "Morellonomicon", "Statikk Shiv"],
+        "early_units": ["Sona", "Nunu", "Blitzcrank"],
+        "final_board": ["Sona", "Mordekaiser", "Illaoi", "Rhaast", "Karma", "Nunu", "Blitzcrank", "Bard", "Ivern Minion"],
+        "level_plan": "Win-streak Vanguards, fast 9, itemize whichever upgraded unit you hit first.",
+        "double_up": "AP fast-9 — frontline-heavy team anchor.",
+        "counters": ["MR / dive backline"],
+        "source": "tftacademy (17.6)"},
+    "corki_riven": {
+        "name": "Corki Riven (Meeple)", "carry": "Corki", "playstyle": "fast8", "tier": "B",
+        "traits": ["Meeple", "Sniper", "Vanguard", "Sorcerer"],
+        "carry_items": ["Last Whisper", "Deathblade", "Power Gauntlet"],
+        "early_units": ["Corki", "Rammus", "Riven"],
+        "final_board": ["Corki", "Riven", "Rammus", "Galio", "Fizz", "Poppy", "Ivern Minion", "Milio"],
+        "level_plan": "Win-streak Meeple/Snipers. Level 8, roll for Corki 2 + Rammus 2 + Riven, then push 9.",
+        "double_up": "Backline Sniper carry; partner frontlines.",
+        "counters": ["Gap-close to Corki", "Corner protects him"],
+        "source": "tftacademy (17.6)"},
+    "challenger_mf": {
+        "name": "Challenger Miss Fortune", "carry": "Miss Fortune", "playstyle": "reroll", "tier": "B",
+        "traits": ["Challenger", "Primordian"],
+        "carry_items": ["Guinsoo's Rageblade", "Deathblade", "Madred's Bloodrazor"],
+        "early_units": ["Miss Fortune", "Ornn"],
+        "final_board": ["Miss Fortune", "Ornn", "Aatrox", "Maokai", "Rhaast", "Urgot", "Bel'Veth"],
+        "level_plan": "Beginner reroll. Win-streak MF + Primordian, slow-roll stage 4 for 3-star MF.",
+        "double_up": "Fast-attacking backline carry — pair with a tanky partner.",
+        "counters": ["CC shuts her down", "Out-scaled late"],
+        "source": "tftacademy (17.6)"},
+    "nova_kindred": {
+        "name": "N.O.V.A. Kindred", "carry": "Kindred", "playstyle": "fast8", "tier": "B",
+        "traits": ["N.O.V.A.", "Brawler"],
+        "carry_items": ["Guinsoo's Rageblade", "Runaan's Hurricane", "Madred's Bloodrazor"],
+        "early_units": ["Kindred", "Caitlyn", "Aatrox"],
+        "final_board": ["Aatrox", "Caitlyn", "Akali", "Bel'Veth", "Maokai", "Tahm Kench", "Kindred", "Morgana"],
+        "level_plan": "Easy fast 8. Level 8, roll for Kindred 2 + Morgana 2; push 9 for 5-cost flex.",
+        "double_up": "Backline carry with N.O.V.A. frontline — easy and stable.",
+        "counters": ["Dive Kindred", "CC the carry"],
+        "source": "tftacademy (17.6)"},
+    "nova_reroll": {
+        "name": "N.O.V.A. Reroll (Caitlyn)", "carry": "Caitlyn", "playstyle": "reroll", "tier": "C",
+        "traits": ["N.O.V.A.", "Vanguard", "Sentinel"],
+        "carry_items": ["Guinsoo's Rageblade", "Runaan's Hurricane", "Madred's Bloodrazor"],
+        "early_units": ["Caitlyn", "Aatrox"],
+        "final_board": ["Aatrox", "Caitlyn", "Maokai", "Kindred", "Rammus", "Corki", "Shen", "Poppy"],
+        "level_plan": "1-cost reroll. Slow-roll stage 3 for Caitlyn 3 + Aatrox 3, cap with Shen at 8-9.",
+        "double_up": "Cheap backline carry — good early, cap with 4-costs.",
+        "counters": ["Out-scaled late", "Dive the backline"],
+        "source": "tftacademy (17.6)"},
+    "karnami_flex": {
+        "name": "KarNami Flex (Karma)", "carry": "Karma", "playstyle": "fast8", "tier": "B",
+        "traits": ["Vanguard", "Summoner", "Mystic"],
+        "carry_items": ["Statikk Shiv", "Spear of Shojin", "Morellonomicon"],
+        "early_units": ["Karma", "Nami", "Nunu"],
+        "final_board": ["Karma", "Nami", "Nunu", "Lissandra", "Illaoi", "Ivern Minion", "Bard", "Galio"],
+        "level_plan": "AP opener behind 4 Vanguard. Fast 8 for Karma + Nami, push 9 for Bard/5-costs.",
+        "double_up": "Vanguard frontline anchor with AP carry.",
+        "counters": ["MR items", "Sustained DPS through frontline"],
+        "source": "tftacademy (17.6)"},
+    "fateweaver_tf": {
+        "name": "Fateweaver Reroll (Twisted Fate)", "carry": "Twisted Fate", "playstyle": "reroll", "tier": "C",
+        "traits": ["Fateweaver", "Rogue", "Vanguard"],
+        "carry_items": ["Leviathan", "Rabadon's Deathcap", "Leviathan"],
+        "early_units": ["Twisted Fate", "Jax", "Caitlyn"],
+        "final_board": ["Aatrox", "Talon", "Caitlyn", "Twisted Fate", "Milio", "Jax", "Riven", "Corki"],
+        "level_plan": "1-cost reroll. Slow-roll above 50g for 3-stars (TF > Jax > Cait/Talon > Aatrox).",
+        "double_up": "AP backline carry — strong early reroll.",
+        "counters": ["Out-scaled by legendaries", "MR"],
+        "source": "tftacademy (17.6)"},
+    "ez_cho": {
+        "name": "Ez Cho (Brawler Sniper)", "carry": "Ezreal", "playstyle": "reroll", "tier": "C",
+        "traits": ["Brawler", "Sniper", "Timebreaker"],
+        "carry_items": ["Spear of Shojin", "Infinity Edge", "Deathblade"],
+        "early_units": ["Cho'Gath", "Ezreal"],
+        "final_board": ["Cho'Gath", "Ezreal", "Milio", "Pantheon", "Maokai", "Riven", "Tahm Kench", "Jhin"],
+        "level_plan": "1-cost reroll. Don't level early; slow-roll above 50g for Ezreal + Cho, cap with Jhin.",
+        "double_up": "Backline Sniper behind Brawlers; partner can frontline too.",
+        "counters": ["Dive Ezreal", "Anti-heal vs Cho"],
+        "source": "tftacademy (17.6)"},
+    "anima_diana": {
+        "name": "Anima Reroll (Diana)", "carry": "Diana", "playstyle": "reroll", "tier": "C",
+        "traits": ["Anima", "Vanguard"],
+        "carry_items": ["Guinsoo's Rageblade", "Titan's Resolve", "Sterak's Gage"],
+        "early_units": ["Diana", "Illaoi", "Leona"],
+        "final_board": ["Diana", "Illaoi", "Aurora", "Leblanc", "Jinx", "Leona", "Nunu", "Ivern Minion"],
+        "level_plan": "3-cost reroll. HP-stack stage 2, slow-roll stage 4 for 3-star Diana, then level 8.",
+        "double_up": "Bruiser frontline-carry — a sturdy anchor.",
+        "counters": ["Anti-heal", "Out-scaled late"],
+        "source": "tftacademy (17.6)"},
+    "pyke_gwen": {
+        "name": "Pyke Gwen (Psionic)", "carry": "Gwen", "playstyle": "reroll", "tier": "C",
+        "traits": ["Psionic", "Vanguard", "Anima"],
+        "carry_items": ["Rabadon's Deathcap", "Hextech Gunblade", "Jeweled Gauntlet"],
+        "early_units": ["Gwen", "Pyke", "Pantheon"],
+        "final_board": ["Gragas", "Ivern Minion", "Gwen", "Pantheon", "Pyke", "Rhaast", "Riven", "Nami"],
+        "level_plan": "2-cost reroll. Level 6, roll for 2-cost upgrades; finish 3-stars then add Riven.",
+        "double_up": "AP bruiser carry — easy reroll line.",
+        "counters": ["Anti-heal vs Gwen", "Out-scaled late"],
+        "source": "tftacademy (17.6)"},
+    "viktor_nami": {
+        "name": "Viktor B4L (Primordian)", "carry": "Viktor", "playstyle": "fast8", "tier": "C",
+        "traits": ["Primordian", "Vanguard", "Anima"],
+        "carry_items": ["Jeweled Gauntlet", "Rabadon's Deathcap", "Statikk Shiv"],
+        "early_units": ["Viktor", "Nami", "Lissandra"],
+        "final_board": ["Lissandra", "Ivern Minion", "Mordekaiser", "Pyke", "Rhaast", "Illaoi", "Viktor", "Nami"],
+        "level_plan": "Fast 8. Econ engine stage 2-3, level 8 for Viktor 2-star, push 9 for 5-costs.",
+        "double_up": "AP frontline-carry anchor.",
+        "counters": ["MR items", "Out-scaled late"],
+        "source": "tftacademy (17.6)"},
+    "lulu_reroll": {
+        "name": "Fountain Lulu (Stargazer)", "carry": "Lulu", "playstyle": "reroll", "tier": "B",
+        "traits": ["Stargazer", "Marauder"],
+        "carry_items": ["Leviathan", "Leviathan", "Jeweled Gauntlet"],
+        "early_units": ["Lulu", "Jax", "Milio"],
+        "final_board": ["Aatrox", "Twisted Fate", "Jax", "Milio", "Pantheon", "Maokai", "Rhaast", "Lulu"],
+        "level_plan": "3-cost reroll. Level 6 at 3-2, slow-roll stage 4 for 3-star Lulu, then level 8.",
+        "double_up": "Support-carry hybrid — Stargazer gold fuels the team.",
+        "counters": ["Burst Lulu down", "Out-scaled late"],
+        "source": "tftacademy (17.6)"},
 }
 
 # Real counter DYNAMICS (positional + item + tempo) — what actually "counters" things.
@@ -148,6 +338,35 @@ def find(carry_or_key: str):
         if comp.get("carry", "").lower() == k:
             return comp
     return None
+
+
+def comp_detail(key_or_carry):
+    """Full 'what am I building' card for one comp: the board to collect, carry+items, plan.
+
+    The board is the comp's curated final_board if present, else the early units plus the
+    carry (the pieces you're collecting) — honest with the data we have.
+    """
+    c = find(key_or_carry)
+    if not c:
+        return None
+    key = next((k for k, v in COMPS.items() if v is c), key_or_carry)
+    carry = c.get("carry")
+    board = list(c.get("final_board") or [])
+    if not board:
+        board = list(c.get("early_units") or [])
+        if carry and carry.lower() != "flex" and carry not in board:
+            board.append(carry)
+    return {
+        "key": key, "name": c.get("name"), "carry": carry,
+        "playstyle": c.get("playstyle"),
+        "traits": c.get("traits", []),
+        "carry_items": c.get("carry_items", []),
+        "early_units": c.get("early_units", []),
+        "board": board,
+        "level_plan": c.get("level_plan", ""),
+        "double_up": c.get("double_up", ""),
+        "source": c.get("source"),
+    }
 
 
 def open_comps(contested_carries):

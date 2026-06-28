@@ -13,6 +13,11 @@ from . import compguide
 NAME = "Coach Roland"
 _MAX_HISTORY = 40
 
+# Priority tiers. Higher floats to the top of the advice list. ACTIVE_CHOICE is for
+# time-boxed in-game decisions (the 2 Gods, the 3 augments) — they have a ~30s clock,
+# so they must sit above passive/standing advice and be visually loud.
+ACTIVE_CHOICE = 100
+
 # God preference by playstyle (which of the 2 offered to favor).
 _GOD_PREF = {
     "fast9": ["Soraka", "Ahri", "Kayle", "Ekko", "Aurelion Sol", "Varus", "Yasuo", "Evelynn", "Thresh"],
@@ -21,8 +26,11 @@ _GOD_PREF = {
 }
 
 
-def _rec(text, why, severity="info", stat=None):
-    return {"text": text, "why": why, "severity": severity, "stat": stat}
+def _rec(text, why, severity="info", stat=None, priority=0, timer=None):
+    """priority: higher pins to the top (see ACTIVE_CHOICE). timer: seconds on the
+    clock for a time-boxed choice, surfaced as a countdown badge (None = no clock)."""
+    return {"text": text, "why": why, "severity": severity, "stat": stat,
+            "priority": priority, "timer": timer}
 
 
 # Augments whose value is generic/econ/combat transfer when you pivot; ones named
@@ -338,7 +346,7 @@ class CoachRoland:
             f"God: take {pick}",
             f"For your {playstyle} comp, {pick} is the better of the two — {info.get('note', '')} "
             f"({info.get('variance', '?')}-variance).",
-            "buy")]
+            "buy", priority=ACTIVE_CHOICE, timer=30)]
 
     def choose_augment(self, offered: list[str], stage: str = None, traits=None) -> list[dict]:
         """Rank the 3 offered augments. Exact win-% needs live augment-stat data."""
@@ -363,13 +371,19 @@ class CoachRoland:
             "Best of the three for your board. Rule of thumb: an emblem that points your comp > a "
             "proven strong augment > econ early / combat later. Exact win-rates come once augment "
             "stat data is wired in.",
-            "buy", stat="augment guidance (live % pending data)")]
+            "buy", stat="augment guidance (live % pending data)",
+            priority=ACTIVE_CHOICE, timer=30)]
 
     # ---- formatting ----------------------------------------------------------
     def say(self, recs: list[dict]) -> str:
         out = []
-        for r in recs:
-            line = f"  {NAME}: {r['text']}"
+        # Stable sort: time-boxed choices first, everything else keeps insertion order.
+        for r in sorted(recs, key=lambda r: -r.get("priority", 0)):
+            urgent = r.get("priority", 0) >= ACTIVE_CHOICE
+            head = ""
+            if urgent:
+                head = "⏳ DECIDE NOW" + (f" (~{r['timer']}s)" if r.get("timer") else "") + " — "
+            line = f"  {NAME}: {head}{r['text']}"
             if r.get("why"):
                 line += f"\n      why: {r['why']}"
             if r.get("stat"):

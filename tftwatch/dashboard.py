@@ -4,20 +4,23 @@ Runs a tiny local web server. Open it in a browser, drag to monitor 2, fullscree
 The watcher runs in the background and pushes live reads; the page polls /state and
 re-renders. Every recommendation has a hover tooltip explaining WHY (+ a stat slot).
 
-    python -m tftwatch.dashboard          # live (watcher in background; needs game on screen)
-    python -m tftwatch.dashboard --demo   # static sample data, no game/API — preview the UI
+    python -m tftwatch.dashboard                     # live (watcher in background; needs game on screen)
+    python -m tftwatch.dashboard --comp dark_star_jhin   # live + contest-aware comp advice
+    python -m tftwatch.dashboard --demo              # static sample data, no game/API — preview the UI
 """
-import sys
+import argparse
 import threading
 
 from flask import Flask, jsonify, Response
 from dotenv import load_dotenv
 
-from .watcher import watch
+from . import compguide
+# NOTE: `.watcher` is imported lazily inside main() (live mode only) so that
+# `--demo` can preview the UI without the screen-capture/vision deps installed.
 
 load_dotenv()
 
-STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": []}
+STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -31,8 +34,10 @@ _SAMPLE = {
                 "your Jhin carry wants. Thresh is all-random; only gamble if you're desperate.",
          "stat": "Realm of the Gods (17.6)"},
         {"text": "Augment: take Advanced Loan", "severity": "buy",
-         "why": "Best of the three for a fast-9 board — econ now compounds into hitting Jhin at 8. "
-                "Rule: an emblem that points your comp > a proven augment > econ early, combat later.",
+         "priority": 100, "timer": 30,
+         "why": "Active pick — choose one of the 3 now. Best of the three for a fast-9 board — econ "
+                "now compounds into hitting Jhin at 8. Rule: an emblem that points your comp > a "
+                "proven augment > econ early, combat later.",
          "stat": "augment guidance (live % pending data)"},
         {"text": "EARLY: bridge to Jhin with Caitlyn, Talon, Aatrox, Jax", "severity": "buy",
          "why": "Jhin Fast 9 doesn't come online until level 8-9, so you can't just wait. Play the "
@@ -91,13 +96,49 @@ def _on_update(update: dict) -> None:
     STATE.update(update)
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="tftwatch.dashboard", description="Coach Roland dashboard")
+    p.add_argument("--demo", action="store_true", help="static sample data, no game/API")
+    p.add_argument("--brain", action="store_true",
+                   help="one live brain call on a sample state -> real generated coaching in the UI")
+    p.add_argument("--comp", metavar="KEY|CARRY",
+                   help="your line (compguide key or carry name) -> contest-aware advice")
+    p.add_argument("--partner", metavar="NAME", help="Double Up partner's name")
+    p.add_argument("--partner-comp", metavar="KEY|CARRY", help="partner's line")
+    p.add_argument("--board", action="store_true", help="also read your board for positioning (extra vision call)")
+    p.add_argument("--augments", action="store_true", help="also read your active augments (extra vision call)")
+    p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
+    p.add_argument("--rules-only", action="store_true", help="live: deterministic rules coach, no LLM brain")
+    return p
+
+
 def main() -> None:
-    demo = "--demo" in sys.argv
-    if demo:
+    args = _build_parser().parse_args()
+    if args.brain:
+        from . import brain
+        STATE.update(_SAMPLE)               # keep the sample lobby/positioning for context
+        STATE["comp"] = compguide.comp_detail("dark_star_jhin")
+        try:
+            out = brain.advise(brain._DEMO_STATE)
+            STATE["advice"] = out["recs"]
+            STATE["comp"] = compguide.comp_detail(out.get("comp_key")) or STATE["comp"]
+            STATE["ts"] = "brain"
+            print(f"Brain demo — live coaching from {brain.DEFAULT_MODEL}. "
+                  "Open http://127.0.0.1:8765")
+        except Exception as e:
+            print(f"Brain call failed ({e}); showing static sample instead.")
+    elif args.demo:
         STATE.update(_SAMPLE)
+        STATE["comp"] = compguide.comp_detail("dark_star_jhin")
         print("Demo mode — open http://127.0.0.1:8765  (sample data, no game/API)")
     else:
-        threading.Thread(target=lambda: watch(on_update=_on_update), daemon=True).start()
+        from .watcher import watch
+        threading.Thread(
+            target=lambda: watch(on_update=_on_update, comp_key=args.comp,
+                                 partner_name=args.partner, partner_comp_key=args.partner_comp,
+                                 board=args.board, augments=args.augments, shop=args.shop,
+                                 use_brain=not args.rules_only),
+            daemon=True).start()
         print("Live — open http://127.0.0.1:8765  (drag to monitor 2, fullscreen). Ctrl+C to stop.")
     app.run(host="127.0.0.1", port=8765, debug=False)
 
@@ -131,6 +172,15 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .a-buy{background:#26210f;border:1px solid #6a5a22;}
 .a-buy .rtext{color:#ffe08a;}
 .badge-buy{background:#caa23a;color:#1a1405;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;margin-right:8px;letter-spacing:.03em;}
+/* Active, time-boxed choice (2 Gods / 3 augments) — pinned to top, loud, pulsing. */
+.a-choice{background:#2c2510;border:2px solid var(--warn);
+  box-shadow:0 0 0 1px var(--warn),0 0 18px rgba(255,184,77,.30);animation:pulse 1.3s ease-in-out infinite;}
+.a-choice .rtext{color:#ffe6a3;font-size:17px;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 1px var(--warn),0 0 8px rgba(255,184,77,.20);}
+  50%{box-shadow:0 0 0 1px var(--warn),0 0 24px rgba(255,184,77,.55);}}
+.badge-choice{background:var(--warn);color:#1a1405;font-size:11px;font-weight:800;padding:2px 8px;
+  border-radius:6px;margin-right:8px;letter-spacing:.04em;}
+.timer{color:var(--warn);font-weight:800;}
 .rwhy{font-size:14px;line-height:1.55;color:var(--tx);opacity:.92;}
 .rstat{margin-top:8px;padding-top:7px;border-top:1px solid rgba(255,255,255,.13);font-size:13px;color:var(--blue);}
 .row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;}
@@ -143,6 +193,19 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .mate{color:var(--blue);font-weight:600;}
 .tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-right:9px;flex:none;}
 .empty{color:var(--mut);font-size:13px;}
+/* Your Comp panel — the "what am I building" board. */
+.compcard{background:linear-gradient(180deg,#171a26,#14141c);border:1px solid #2f3550;}
+.compname{font-size:22px;font-weight:700;color:#cfe0ff;}
+.compname .ps{font-size:12px;font-weight:600;color:var(--mut);margin-left:8px;text-transform:uppercase;letter-spacing:.05em;}
+.compsub{font-size:13px;color:var(--mut);margin:3px 0 11px;}
+.compsub b{color:var(--tx);}
+.steplbl{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin:11px 0 6px;}
+.approx{color:var(--warn);text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;}
+.board{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
+.unit{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--tx);}
+.unit.carry{background:#2a2410;border-color:var(--warn);color:#ffe08a;font-weight:700;}
+.items{font-size:13px;color:var(--blue);margin-bottom:8px;}
+.plan{font-size:13px;color:var(--tx);opacity:.9;border-top:1px solid var(--line);padding-top:8px;}
 @media(max-width:760px){.grid{grid-template-columns:1fr;}}
 </style></head><body>
 <div class="head">
@@ -150,6 +213,9 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
     <div><h1>Coach Roland</h1><p id="sub">connecting…</p></div></div>
   <div class="live"><span class="dot"></span><span id="status">live</span></div>
 </div>
+
+<div class="card compcard"><h2>Your comp · what you're building</h2>
+  <div id="comp"><div class="empty">No comp locked yet — Coach Roland will commit to one.</div></div></div>
 
 <div class="card"><h2>Coach says</h2>
   <div id="advice"><div class="empty">Waiting for the lobby…</div></div></div>
@@ -161,18 +227,64 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 </div>
 
 <script>
+// Deadlines for time-boxed choices live here so the countdown keeps ticking across
+// the 2s state re-renders (each card's clock starts when we first see it).
+var deadlines={};
+function timerSpan(key,secs){
+  if(!(key in deadlines)){deadlines[key]=Date.now()+(secs||30)*1000;}
+  var rem=Math.max(0,Math.ceil((deadlines[key]-Date.now())/1000));
+  return '<span class="timer" data-key="'+encodeURIComponent(key)+'" data-secs="'+(secs||30)+'">'
+    +(rem>0?'~'+rem+'s':'now!')+'</span>';
+}
+function tickTimers(){
+  document.querySelectorAll('.timer').forEach(function(el){
+    var key=decodeURIComponent(el.getAttribute('data-key'));
+    if(!(key in deadlines)){deadlines[key]=Date.now()+(parseInt(el.getAttribute('data-secs'))||30)*1000;}
+    var rem=Math.max(0,Math.ceil((deadlines[key]-Date.now())/1000));
+    el.textContent=rem>0?'~'+rem+'s':'now!';
+  });
+}
+setInterval(tickTimers,1000);
+
 function recCard(r){
   var sev = r.severity || "info";
-  var badge = sev==="buy" ? '<span class="badge-buy">IMPORTANT</span>' : '';
+  var urgent = (r.priority||0) >= 100;
+  var cls = urgent ? "rec a-choice" : "rec a-"+sev;
+  var badge;
+  if(urgent){ badge='<span class="badge-choice">⏳ DECIDE NOW</span> '
+                    +(r.timer?timerSpan(r.text,r.timer)+' ':''); }
+  else { badge = sev==="buy" ? '<span class="badge-buy">IMPORTANT</span>' : ''; }
   var why = r.why ? '<div class="rwhy">'+r.why+'</div>' : '';
   var stat = r.stat ? '<div class="rstat">'+r.stat+'</div>' : '';
-  return '<div class="rec a-'+sev+'"><div class="rtext">'+badge+r.text+'</div>'+why+stat+'</div>';
+  return '<div class="'+cls+'"><div class="rtext">'+badge+r.text+'</div>'+why+stat+'</div>';
+}
+function unitChips(list,carry){
+  return (list||[]).map(function(u){
+    var c=(carry && u.toLowerCase()===carry.toLowerCase());
+    return '<span class="unit'+(c?' carry':'')+'">'+u+(c?' ★':'')+'</span>';
+  }).join('');
+}
+function renderComp(c){
+  if(!c){return '<div class="empty">No comp locked yet — Coach Roland will commit to one.</div>';}
+  var ps=c.playstyle?'<span class="ps">'+c.playstyle+'</span>':'';
+  var early=(c.early_units&&c.early_units.length)
+    ?'<div class="steplbl">① Buy now · early game</div><div class="board">'+unitChips(c.early_units,c.carry)+'</div>':'';
+  var fin=(c.board&&c.board.length)
+    ?'<div class="steplbl">② Final board · level 8-9 <span class="approx">(target — a guide, not gospel)</span></div><div class="board">'+unitChips(c.board,c.carry)+'</div>':'';
+  var items=(c.carry_items&&c.carry_items.length)
+    ?'<div class="items">'+c.carry+"'s items: "+c.carry_items.join(' + ')+'</div>':'';
+  var plan=c.level_plan?'<div class="plan"><b>How to get there:</b> '+c.level_plan+'</div>':'';
+  return '<div class="compname">'+c.name+ps+'</div>'+early+fin+items+plan;
 }
 function render(s){
+  if(s.event==="game_over"){ deadlines={}; }   // clear stale clocks between games
+  document.getElementById("comp").innerHTML=renderComp(s.comp);
   document.getElementById("sub").textContent =
     (s.event==="game_over"?"game over — session cleared":(s.ts?("updated "+s.ts):"waiting"));
   var adv=document.getElementById("advice");
-  adv.innerHTML=(s.advice&&s.advice.length)?s.advice.map(recCard).join("")
+  // time-boxed choices pinned to the top; everything else keeps its order.
+  var advice=(s.advice||[]).slice().sort(function(a,b){return (b.priority||0)-(a.priority||0);});
+  adv.innerHTML=advice.length?advice.map(recCard).join("")
     :'<div class="empty">No new threats — hold steady.</div>';
 
   var lob=document.getElementById("lobby");
