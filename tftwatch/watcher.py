@@ -35,7 +35,7 @@ from . import compguide
 from . import brain
 from .ledger import Ledger
 from .vision import (read_lobby_pil, read_board_pil, read_augments_pil, read_self_pil,
-                     _crop_region, RIGHT_PANEL)
+                     read_traits_pil, _crop_region, RIGHT_PANEL)
 from .coach import CoachRoland
 from .cleanup import capture_dir, purge_captures
 
