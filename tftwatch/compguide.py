@@ -393,17 +393,24 @@ def suggest_for_traits(active_traits, contested=None, current_key=None):
     if not active_traits:
         return None
     contested = {c.lower() for c in (contested or [])}
-    strongest = sorted(active_traits, key=lambda t: -(t.get("count") or 0))
+    # Only traits at a real breakpoint (2+) drive the pick — a single stray unit of a trait
+    # isn't a commitment and must not flip your comp (this caused spurious picks like Ez Cho
+    # off a lone Brawler/Sniper on a noisy frame).
+    strongest = sorted([t for t in active_traits if (t.get("count") or 0) >= 2],
+                       key=lambda t: -(t.get("count") or 0))
 
     if current_key and current_key in COMPS:
         cur = COMPS[current_key]
         cur_def = next(iter([x.lower() for x in cur.get("traits", [])][:1]), None)
-        top_count = strongest[0].get("count") or 0
-        cur_count = next((t.get("count") or 0 for t in strongest
+        top_count = strongest[0].get("count") if strongest else 0
+        cur_count = next((t.get("count") or 0 for t in active_traits
                           if (t.get("name") or "").lower() == cur_def), 0)
         if (cur_def and cur.get("carry", "").lower() not in contested
                 and cur_count + 1 >= top_count):     # still your line (within 1 of the top) -> stay
             return cur
+
+    if not strongest:                    # no trait at a breakpoint yet -> don't (re)pick a comp
+        return COMPS.get(current_key) if current_key in COMPS else None
 
     # 1. prefer a comp whose primary/defining trait IS your strongest trait
     for t in strongest:
