@@ -41,6 +41,11 @@ from .cleanup import capture_dir, purge_captures
 
 SELF = "me"   # ledger key for your own augments
 
+# Shop and traits are printed TEXT (champion names, trait names, gold/level numbers) — a
+# small model reads them fine at a fraction of the cost. Lobby (tiny HP digits / star pips),
+# board (isometric), and augments (icons, not text) stay on the stronger model.
+TEXT_MODEL = os.getenv("TFT_TEXT_MODEL", "gpt-4o-mini")
+
 
 def _grab_full(sct, monitor) -> Image.Image:
     shot = sct.grab(monitor)
@@ -285,7 +290,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     self_read = None
                     if shop:
                         try:
-                            self_read = read_self_pil(full, model=model)
+                            self_read = read_self_pil(full, model=TEXT_MODEL)
                         except Exception as e:
                             print(f"  (shop read failed: {e})")
 
@@ -294,7 +299,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     traits_read = None
                     if brain_on:
                         try:
-                            traits_read = read_traits_pil(full, model=model).get("traits")
+                            traits_read = read_traits_pil(full, model=TEXT_MODEL).get("traits")
                         except Exception as e:
                             print(f"  (trait read failed: {e})")
 
