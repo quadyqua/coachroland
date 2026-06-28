@@ -333,7 +333,7 @@ function renderShop(s){
     (s.stage?'· stage '+s.stage+'  ':'')+(s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
   document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
     var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':'slot dim'));
-    var tag=sl.action==='buy'?(sl.pair?' · pair':' · buy')
+    var tag=sl.action==='buy'?(sl.tostar?' · '+sl.tostar:' · buy')
       :(sl.action==='lock'?' · LOCK':(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
     return '<div class="'+cls+'"><div class="sn">'+(sl.name||'—')+(sl.carry?' ★':'')+
       '</div><div class="sc">'+(sl.cost!=null?sl.cost+'g':'')+tag+'</div></div>';
@@ -346,12 +346,13 @@ function renderBench(s){
   var card=document.getElementById("benchcard");
   if(card){ card.style.display = bn.length ? '' : 'none'; }
   if(!bn.length) return;
-  var counts={}; bn.forEach(function(b){counts[b.name]=(counts[b.name]||0)+1;});
+  var ones={}; bn.forEach(function(b){ if((b.stars||1)<2) ones[b.name]=(ones[b.name]||0)+1; });
   document.getElementById("bench").innerHTML = bn.map(function(b){
-    var pair = counts[b.name]>=2;
+    var n=ones[b.name]||0, prog=(b.stars||1)<2 && n>=2;   // collecting toward a 2-star
     var stars = b.stars?(' '+Array(b.stars+1).join('★')):'';
-    return '<div class="'+(pair?'slot buy':'slot')+'"><div class="sn">'+(b.name||'?')+stars+'</div><div class="sc">'
-      +(b.cost?b.cost+'g':'')+(pair?' &middot; pair':'')+'</div></div>';
+    var lbl = prog ? (n>=3?' &middot; makes 2★':' &middot; '+n+'/3 to 2★') : '';
+    return '<div class="'+(prog?'slot buy':'slot')+'"><div class="sn">'+(b.name||'?')+stars+'</div><div class="sc">'
+      +(b.cost?b.cost+'g':'')+lbl+'</div></div>';
   }).join('');
 }
 function renderItems(s){

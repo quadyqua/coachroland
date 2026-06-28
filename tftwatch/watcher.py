@@ -333,7 +333,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     if local_eyes:
                         try:
                             bench_view = localvision.read_bench_pil(full).get("bench", [])
-                            owned_units = [b["name"] for b in bench_view]
+                            owned_units = [b["name"] for b in bench_view if (b.get("stars") or 1) < 2]
                         except Exception as e:
                             print(f"  (bench read failed: {e})")
 

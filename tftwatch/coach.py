@@ -422,7 +422,9 @@ class CoachRoland:
 
         my_units, my_carry = unit_set(comp)
         p_units, p_carry = unit_set(partner_comp)
-        owned_set = {o.lower() for o in (owned or [])}
+        # owned = your 1-star copies (a unit already 2★ isn't a pair to collect). Each copy
+        # is one list entry, so Counter gives true copy counts.
+        owned_counts = Counter(o.lower() for o in (owned or []))
         shop_counts = Counter((s or {}).get("name", "").lower() for s in shop if s and s.get("name"))
 
         view = []
@@ -433,7 +435,10 @@ class CoachRoland:
             affordable = gold is None or cost is None or gold >= cost
             is_my_carry = bool(name) and nl == my_carry
             mine = bool(name) and (is_my_carry or nl in my_units)
-            pair = bool(name) and (nl in owned_set or shop_counts[nl] >= 2)
+            # copies you'd hold if you bought the shop copies of this unit. 3 copies = a 2★.
+            copies = owned_counts[nl] + shop_counts[nl]
+            pair = bool(name) and copies >= 2
+            tostar = ("makes 2★" if copies >= 3 else f"{copies}/3 to 2★") if pair else None
             theirs = bool(name) and not mine and not pair and partner_comp and (nl == p_carry or nl in p_units)
             action, who = None, None
             if mine or pair:
@@ -441,7 +446,8 @@ class CoachRoland:
             elif theirs:
                 action, who = ("give" if affordable else None), "partner"
             view.append({"name": name, "cost": cost, "action": action, "carry": is_my_carry,
-                         "pair": pair, "for": who, "partner": partner_name if theirs else None})
+                         "pair": pair, "tostar": tostar, "for": who,
+                         "partner": partner_name if theirs else None})
 
         # Gold-budget sequencing: with limited gold, keep the highest-priority buys you can
         # actually afford in order; downgrade the rest to lock (yours) / skip (partner's).
