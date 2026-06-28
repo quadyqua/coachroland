@@ -353,7 +353,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     offered = None
                     if offers:
                         try:
-                            o = read_offer_pil(full, model=TEXT_MODEL)
+                            o = (localvision.read_offer_pil(full) if local_eyes
+                                 else read_offer_pil(full, model=TEXT_MODEL))
                             if o.get("options"):
                                 offered = o
                         except Exception as e:
@@ -395,6 +396,11 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                                                   data, contested, augs, alt_name)
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
+                    # Free God-choice pick: the brain handles offers itself, so only inject here
+                    # when running the rules coach (brain off). Pins to top via ACTIVE_CHOICE.
+                    if not brain_on and offered and offered.get("kind") == "god" and offered.get("options"):
+                        recs = coach.choose_god(offered["options"],
+                                                (last_comp or {}).get("playstyle") or "flex") + recs
 
                     shop_view = (coach.shop_plan(self_read.get("shop"), last_comp,
                                                  self_read.get("gold"), partner_comp=partner_detail,
@@ -450,7 +456,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--board", action="store_true", help="also read your board for positioning (PAID gpt-4o — positioning isn't free yet)")
     p.add_argument("--augments", action="store_true", help="also read your augment choices (free, local icon match)")
     p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (free, local)")
-    p.add_argument("--offers", action="store_true", help="also read the God-choice screen (PAID gpt-4o)")
+    p.add_argument("--offers", action="store_true", help="also read the God-choice screen -> which God to take (free, local OCR)")
     p.add_argument("--items", action="store_true", help="also read the item-choice screen -> highlight carry items (free, local)")
     p.add_argument("--brain", action="store_true", help="opt in to the PAID gpt-4o reasoning brain (needs OPENAI_API_KEY + credits); default is the free rules coach")
     p.add_argument("--rules-only", action="store_true", help="(deprecated — the free rules coach is the default now)")

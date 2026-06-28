@@ -16,7 +16,7 @@ import re
 import numpy as np
 from PIL import Image
 
-from . import cdragon, icons
+from . import cdragon, compguide, icons
 
 RIGHT_PANEL = (0.78, 0.08, 1.0, 0.97)
 UPSCALE = 2
@@ -239,6 +239,29 @@ def read_augments_pil(img: "Image.Image", crop=AUGMENT_REGION, slots=AUGMENT_SLO
 
 def read_augments(image_path: str, crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> dict:
     return read_augments_pil(Image.open(image_path).convert("RGB"), crop, slots)
+
+
+# ---- God choice ("Choose your God wisely"): the names are TEXT -> free OCR works ----
+OFFER_REGION = (0.22, 0.22, 0.78, 0.66)
+
+
+def read_offer_pil(img: "Image.Image", crop=OFFER_REGION) -> dict:
+    """{kind:'god', options:[god names]} — the offered Gods read by OCR (free, validated)."""
+    found = []
+    for b in _boxes(_crop(img, crop)):
+        t = b["text"].strip()
+        if len(t) < 3 or len(t) > 20 or len(t.split()) > 3:   # skip description sentences
+            continue
+        tl = t.lower()
+        for g in compguide.GODS:
+            gl = g.lower()
+            if (tl == gl or (len(tl) >= 4 and (tl in gl or gl in tl))) and g not in found:
+                found.append(g)
+    return {"kind": "god", "options": found}
+
+
+def read_offer(image_path: str, crop=OFFER_REGION) -> dict:
+    return read_offer_pil(Image.open(image_path).convert("RGB"), crop)
 
 
 # ---- bench: which units you own, by PORTRAIT (free icon match, no OCR) ----------
