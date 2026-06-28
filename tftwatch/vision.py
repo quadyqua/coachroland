@@ -117,15 +117,16 @@ def read_lobby(image_path: str, model: str = "gpt-4o", crop=RIGHT_PANEL) -> dict
 # a real board capture before the positioning advice is trustworthy.
 BOARD_REGION = (0.20, 0.20, 0.80, 0.80)
 
-_BOARD_PROMPT = """You are reading the player's OWN Teamfight Tactics board (the hex grid in the
-center). For each champion currently ON the board (not the bench), report:
+_BOARD_PROMPT = """You are reading the player's OWN Teamfight Tactics board + bench.
+For each champion ON the hex board (the grid in the center), report:
 - name
 - role: one of tank, bruiser, carry, caster, support (your best guess)
 - row: front, mid, or back (front = closest to the enemy / top of the grid)
 - side: left, center, or right
+ALSO list the champions sitting on the BENCH (the row of slots just below the board), by NAME only.
 
-Return STRICT JSON: {"units": [{"name","role","row","side"}]}.
-Only list units on the hex board. If unsure of a unit, still include it with your best guess."""
+Return STRICT JSON: {"units": [{"name","role","row","side"}], "bench": ["<name>", ...]}.
+Include every unit you can identify; if unsure of one, still include your best guess."""
 
 
 def read_board_pil(img: "Image.Image", model: str = "gpt-4o", crop=BOARD_REGION) -> dict:

@@ -442,6 +442,20 @@ class CoachRoland:
                 action, who = ("give" if affordable else None), "partner"
             view.append({"name": name, "cost": cost, "action": action, "carry": is_my_carry,
                          "pair": pair, "for": who, "partner": partner_name if theirs else None})
+
+        # Gold-budget sequencing: with limited gold, keep the highest-priority buys you can
+        # actually afford in order; downgrade the rest to lock (yours) / skip (partner's).
+        if gold is not None:
+            def _prio(v):
+                return 0 if v["carry"] else (1 if v["pair"] else (2 if v["for"] == "you" else 3))
+            remaining = gold
+            for v in sorted((x for x in view if x["action"] in ("buy", "give")),
+                            key=lambda x: (_prio(x), x["cost"] if x["cost"] is not None else 99)):
+                c = v["cost"]
+                if c is not None and c <= remaining:
+                    remaining -= c
+                else:
+                    v["action"] = "lock" if v["for"] == "you" else None
         return view
 
     def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:
@@ -490,6 +504,31 @@ class CoachRoland:
             take = bool(ni) and any(ni == w or (len(ni) >= 4 and (ni in w or w in ni)) for w in want)
             out.append({"name": it, "take": take, "carry": carry})
         return out
+
+    def item_holder_advice(self, comp) -> list[dict]:
+        """Who actually holds the items — and whether to slam now or hold for the carry.
+
+        Cheap reroll carry (1-2 cost) -> it IS the holder, itemize it. A 3+ cost carry
+        -> build the items but HOLD them; don't waste them on an early 1-cost you'll sell.
+        """
+        if not comp:
+            return []
+        carry = comp.get("carry")
+        if not carry or carry.lower() == "flex":
+            return []
+        items = ", ".join(comp.get("carry_items") or []) or "your carry's items"
+        playstyle = (comp.get("playstyle") or "").lower()
+        cost = comp.get("carry_cost") or cdragon.cost_of(carry)
+        reroll = playstyle == "reroll" or (cost is not None and cost <= 2)
+        if reroll:
+            return [_rec(f"Itemize {carry} — your carry",
+                         f"{carry} is your reroll carry, so they hold the items. Slam {items} onto {carry} "
+                         f"as you collect the pieces.", "buy")]
+        cost_txt = f"a {cost}-cost" if cost else "a late-game unit"
+        return [_rec(f"Hold items for {carry} — don't itemize a holder",
+                     f"{carry} is your carry ({cost_txt}) and comes online late. Build toward {items}, but "
+                     f"HOLD the items — don't slam them onto an early 1-cost you'll sell. Put them on {carry} "
+                     f"when you hit it.", "warn")]
 
     # ---- formatting ----------------------------------------------------------
     def say(self, recs: list[dict]) -> str:

@@ -187,6 +187,7 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
         is_contested = has_carry and carry.lower() in {c.lower() for c in contested}
         if has_carry:
             out += coach.early_game(my_plan)
+            out += coach.item_holder_advice(my_comp)
             out += coach.item_plan(my_comp, contested=is_contested, alt=alt_name)
         if teammate_comp:
             out += coach.doubleup(my_comp, teammate_comp, data, augments=augs, alt_comp=alt_name)
@@ -324,6 +325,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                             positioning = coach.positioning(board_read)
                             owned_units = [u.get("name") for u in (board_read.get("units") or [])
                                            if u.get("name")]
+                            owned_units += [b for b in (board_read.get("bench") or []) if b]  # bench -> pairs
                         except Exception as e:
                             print(f"  (board read failed: {e})")
 

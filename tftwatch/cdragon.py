@@ -65,6 +65,12 @@ def _load() -> None:
             api = t.get("apiName")
             if api:
                 _trait_name[api] = t.get("name") or humanize(api)
+    # champion costs by display name — names collide across sets, so use the CURRENT set only
+    latest = max(data.get("setData", []), key=lambda s: s.get("number") or 0, default=None)
+    if latest:
+        for c in latest.get("champions", []):
+            if c.get("name") and c.get("cost") is not None:
+                _champ_cost_by_name[c["name"].lower()] = c["cost"]
     # items are top-level (shared across sets) — build completed-item -> components recipe
     item_name = {it["apiName"]: it.get("name") for it in data.get("items", []) if it.get("apiName")}
     for it in data.get("items", []):
@@ -76,7 +82,14 @@ def _load() -> None:
 
 
 _roster: list[str] = []
-_item_components: dict = {}   # completed item name (lower) -> [component display names]
+_item_components: dict = {}        # completed item name (lower) -> [component display names]
+_champ_cost_by_name: dict = {}     # champion display name (lower) -> cost (1-5)
+
+
+def cost_of(name: str):
+    """Gold cost of a champion by display name (1-5), or None if unknown."""
+    _load()
+    return _champ_cost_by_name.get((name or "").lower())
 
 
 def item_components(name: str) -> list:
