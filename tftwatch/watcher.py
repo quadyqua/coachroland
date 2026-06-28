@@ -35,7 +35,7 @@ from . import compguide
 from . import brain
 from .ledger import Ledger
 from .vision import (read_lobby_pil, read_board_pil, read_augments_pil, read_self_pil,
-                     read_traits_pil, _crop_region, RIGHT_PANEL)
+                     read_traits_pil, read_offer_pil, _crop_region, RIGHT_PANEL)
 from .coach import CoachRoland
 from .cleanup import capture_dir, purge_captures
 
@@ -124,7 +124,7 @@ def _contested_carries(data: dict) -> list[str]:
 def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contested,
                     ledger: Ledger, stage: str = "unknown",
                     self_read: dict = None, owned_units=None,
-                    traits=None, committed_comp=None) -> dict:
+                    traits=None, committed_comp=None, offered=None) -> dict:
     """Bundle everything the brain reasons over, pulling augments/carries from the ledger.
 
     self_read = {gold, level, shop:[{name,cost}]} from the bottom-bar reader; owned_units
@@ -169,6 +169,7 @@ def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contes
         "me": me, "partner": partner, "opponents": opponents,
         "contested": contested, "next_opponent": data.get("next_opponent"),
         "committed_comp": committed_comp,    # keep this unless traits clearly say otherwise
+        "offered": offered,                  # {kind, options:[{name,effect}]} when a pick is on screen
     }
 
 
@@ -196,7 +197,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
           model: str = "gpt-4o", on_update=None,
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
-          use_brain: bool = True, brain_gap: float = 18.0) -> None:
+          offers: bool = False, use_brain: bool = True, brain_gap: float = 18.0) -> None:
     """Watch the panel; read + coach when it changes and settles.
 
     use_brain — run the LLM reasoning brain (auto-off if no OPENAI_API_KEY); brain_gap
@@ -314,14 +315,24 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         except Exception as e:
                             print(f"  (board read failed: {e})")
 
+                    # A live God/augment pick on screen -> advise immediately (skip throttle).
+                    offered = None
+                    if offers:
+                        try:
+                            o = read_offer_pil(full, model=TEXT_MODEL)
+                            if o.get("options"):
+                                offered = o
+                        except Exception as e:
+                            print(f"  (offer read failed: {e})")
+
                     if brain_on:
-                        if (now - last_brain) >= brain_gap:
+                        if offered or (now - last_brain) >= brain_gap:
                             last_brain = now
                             try:
                                 state = _assemble_state(
                                     comp_key, my_comp, teammate_comp, partner_name, data,
                                     contested, ledger, self_read=self_read, owned_units=owned_units,
-                                    traits=traits_read,
+                                    traits=traits_read, offered=offered,
                                     committed_comp=(last_comp or {}).get("key"))
                                 out = brain.advise(state)
                                 last_brain_recs = out["recs"]
@@ -379,6 +390,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--board", action="store_true", help="also read your board for positioning (extra vision call)")
     p.add_argument("--augments", action="store_true", help="also read your active augments (extra vision call)")
     p.add_argument("--shop", action="store_true", help="also read your shop/gold/level -> 'buy this' advice (extra vision call)")
+    p.add_argument("--offers", action="store_true", help="also read the God/augment choice screen -> advise which to pick (extra vision call)")
     p.add_argument("--rules-only", action="store_true", help="deterministic rules coach, no LLM brain")
     return p
 
@@ -391,4 +403,5 @@ if __name__ == "__main__":
         _once()
     else:
         watch(comp_key=args.comp, partner_name=args.partner, partner_comp_key=args.partner_comp,
-              board=args.board, augments=args.augments, shop=args.shop, use_brain=not args.rules_only)
+              board=args.board, augments=args.augments, shop=args.shop, offers=args.offers,
+              use_brain=not args.rules_only)

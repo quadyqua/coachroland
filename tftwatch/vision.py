@@ -265,6 +265,48 @@ def read_traits(image_path: str, model: str = "gpt-4o", crop=TRAIT_REGION) -> di
     return read_traits_pil(Image.open(image_path).convert("RGB"), model, crop)
 
 
+# ---- the choice screen: 2 Gods (Realm of the Gods) or 3 Augments offered NOW -----
+# These appear as cards in the center of the screen with the option name + an effect
+# description (printed text). The reader returns the options + their effects so the
+# brain can pick the best one for the player's actual traits and the contested lobby.
+# Returns empty options when no choice screen is up (normal gameplay).
+OFFER_REGION = (0.15, 0.24, 0.85, 0.82)
+
+_OFFER_PROMPT = """You are reading a CHOICE SCREEN in Teamfight Tactics, if one is shown — either
+the 2 GODS offered (Realm of the Gods) or the 3 AUGMENTS offered. Each option is a card with
+a NAME and a short EFFECT description (printed text).
+
+Return STRICT JSON, no prose:
+{"kind": "god" | "augment" | "unknown",
+ "options": [{"name": "<option name>", "effect": "<the effect text on the card, brief>"}]}
+
+If the screen is normal gameplay with NO choice cards visible, return
+{"kind": "unknown", "options": []}. Read names/effects exactly; do not invent options."""
+
+
+def read_offer_pil(img: "Image.Image", model: str = "gpt-4o", crop=OFFER_REGION) -> dict:
+    """Full-screen PIL -> {kind, options:[{name,effect}]} for a live God/augment pick."""
+    b64 = _b64(_crop_region(img, crop))
+    resp = _client().chat.completions.create(
+        model=model,
+        temperature=0,
+        response_format={"type": "json_object"},
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": _OFFER_PROMPT},
+                {"type": "image_url",
+                 "image_url": {"url": f"data:image/png;base64,{b64}", "detail": "high"}},
+            ],
+        }],
+    )
+    return _parse(resp)
+
+
+def read_offer(image_path: str, model: str = "gpt-4o", crop=OFFER_REGION) -> dict:
+    return read_offer_pil(Image.open(image_path).convert("RGB"), model, crop)
+
+
 if __name__ == "__main__":
     import sys
     from dotenv import load_dotenv

@@ -119,8 +119,12 @@ RIGHT-NOW SHOP & BENCH (when the state gives me.shop / me.gold / me.level):
      (pick one that is NOT in your comp's board). If you can't see their board, say "bench any
      unit that isn't in the list above."
 
-A live time-boxed choice (Gods or augments offered RIGHT NOW, ~30s clock) is priority 100:
-tell them which one to click and why, in one simple sentence.
+LIVE PICK (state.offered): when state.offered is present (kind = god/augment; each option has a
+name + effect), a time-boxed choice is on screen RIGHT NOW. This OVERRIDES the "first rec is the
+comp" rule — your FIRST rec MUST be that pick, priority 100, timer ~30. Choose the option that
+(a) best fits their strongest ACTIVE TRAITS and the board they're building (does its effect push
+the comp they already have?), and (b) is NOT what the lobby is contesting. Name the exact option
+and give a one-sentence why that references their trait. If state.offered is null, ignore this.
 
 Return STRICT JSON only:
 {"comp_key": "<EXACT compguide key IF a meta comp matches their strongest active trait, else null>",
