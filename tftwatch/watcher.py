@@ -406,12 +406,16 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         strategic = last_brain_recs
                     else:
                         rc, rp = my_comp, my_plan
-                        if not comp_key and traits_read:   # no preset comp -> build one from your board
-                            det = compguide.suggest_for_traits(traits_read, contested,
-                                                               current_key=(last_comp or {}).get("key"))
+                        if not comp_key:
+                            det = (compguide.suggest_for_traits(traits_read, contested,
+                                   current_key=(last_comp or {}).get("key")) if traits_read else None)
                             if det:
                                 rc, rp = _comp_dicts(det)
                                 last_comp = compguide.comp_detail(det.get("carry")) or last_comp
+                            elif last_comp and last_comp.get("key"):
+                                # no trait read this frame (combat/transition/choice screen) -> keep
+                                # advising your COMMITTED comp; don't fall back to generic "open lines"
+                                rc, rp = _comp_dicts(compguide.COMPS.get(last_comp["key"]))
                         strategic = _rules_advice(coach, rc, rp, teammate_comp,
                                                   data, contested, augs, alt_name,
                                                   stage=stage_read, level=(self_read or {}).get("level"),
