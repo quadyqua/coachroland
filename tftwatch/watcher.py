@@ -239,7 +239,9 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
     last_brain_recs: list = []
     last_comp = compguide.comp_detail(comp_key) if comp_key else None
     hp_hist: dict = {}                     # per-player HP, to reject misread crashes
-    empty_reads = 0
+    last_valid_read = time.time()          # last time we saw a real lobby (>= 2 players)
+    game_over_fired = False                # so we reset/blank only ONCE per real game-over
+    GAME_OVER_GAP = 45.0                   # tolerate brief alt-tabs; only reset after this gap
     last_save = 0.0                        # for --save-frames training capture
 
     with mss.MSS() as sct:
@@ -275,14 +277,17 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
 
                     players = data.get("players") or []
                     if len(players) < 2:
-                        empty_reads += 1
-                        if empty_reads >= 2:
+                        # No lobby on screen — you alt-tabbed, a loading/transition frame, etc.
+                        # Don't reset on a brief absence; keep your last comp/advice shown. Only
+                        # after a real gap (game actually ended) do we clear + blank, once.
+                        if (now - last_valid_read) >= GAME_OVER_GAP and not game_over_fired:
                             coach.reset()
                             ledger.reset()
                             owned_tracker.reset()
                             last_brain_recs = []
                             last_comp = compguide.comp_detail(comp_key) if comp_key else None
                             hp_hist.clear()
+                            game_over_fired = True
                             removed = purge_captures()
                             if on_update:
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "game_over",
@@ -293,11 +298,11 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                             else:
                                 print(f"[{time.strftime('%H:%M:%S')}] Game over — cleared session "
                                       f"memory; removed {removed} temp file(s).\n")
-                            empty_reads = 0
                         time.sleep(poll)
                         continue
 
-                    empty_reads = 0
+                    last_valid_read = now                      # real lobby on screen -> game is live
+                    game_over_fired = False
                     _smooth_hp(players, hp_hist)               # correct misread HP before anyone uses it
                     coach.observe(data)                        # keep session tracking; output dropped (HP reads too noisy)
                     for p in players:                          # ledger: remember spiked carries
