@@ -225,6 +225,24 @@ def current_traits() -> list[str]:
     return _traits_list
 
 
+_champ_traits: dict = {}    # champion display name (lower) -> [trait display names], current set
+
+
+def champ_traits(name: str) -> list:
+    """Trait display names of a champion in the current set — used to explain WHY a unit is
+    in your comp (does it share your comp's trait, or is it just a frontline body?)."""
+    if not _champ_traits:
+        try:
+            data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            latest = max(data.get("setData", []), key=lambda s: s.get("number") or 0)
+            for c in latest.get("champions", []):
+                if c.get("name"):
+                    _champ_traits[c["name"].lower()] = list(c.get("traits") or [])
+        except Exception:
+            pass
+    return _champ_traits.get((name or "").lower(), [])
+
+
 def champ_name(api: str) -> str:
     _load()
     return _champ_name.get(api) or humanize(api)

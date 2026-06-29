@@ -346,8 +346,10 @@ function renderShop(s){
     (s.stage?'· stage '+s.stage+'  ':'')+(s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
   document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
     var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':'slot dim'));
-    var tag=sl.action==='buy'?(sl.tostar?' · '+sl.tostar:' · buy')
-      :(sl.action==='lock'?' · LOCK':(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
+    var roleTxt={carry:'your carry',core:'comp core',body:'frontline body'}[sl.role]||'';
+    var why=sl.tostar||roleTxt||'buy';   // WHY it's a buy: pair progress, or its role in your comp
+    var tag=sl.action==='buy'?(' · '+why)
+      :(sl.action==='lock'?(' · LOCK'+(roleTxt?' ('+roleTxt+')':'')):(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
     return '<div class="'+cls+'"><div class="sn">'+(sl.name||'—')+(sl.carry?' ★':'')+
       '</div><div class="sc">'+(sl.cost!=null?sl.cost+'g':'')+tag+'</div></div>';
   }).join('') : '<div class="empty" style="grid-column:1/-1">No shop read — run with --shop.</div>';

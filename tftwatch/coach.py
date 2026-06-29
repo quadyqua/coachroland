@@ -436,6 +436,7 @@ class CoachRoland:
 
         my_units, my_carry = unit_set(comp)
         p_units, p_carry = unit_set(partner_comp)
+        comp_primary = ((comp.get("traits") or [None])[0] or "").lower() if comp else ""
         # owned = your 1-star copies (a unit already 2★ isn't a pair to collect). Each copy
         # is one list entry, so Counter gives true copy counts.
         owned_counts = Counter(o.lower() for o in (owned or []))
@@ -462,8 +463,21 @@ class CoachRoland:
                 action, who = ("buy" if affordable else "lock"), "you"
             elif theirs:
                 action, who = ("give" if affordable else None), "partner"
+            # WHY this unit: your carry / a trait piece for your comp / a frontline body in
+            # the comp / a pair you're collecting / your partner's.
+            if is_my_carry:
+                role = "carry"
+            elif mine:
+                utraits = {t.lower() for t in cdragon.champ_traits(name)}
+                role = "core" if comp_primary and comp_primary in utraits else "body"
+            elif pair:
+                role = "pair"
+            elif theirs:
+                role = "partner"
+            else:
+                role = None
             view.append({"name": name, "cost": cost, "action": action, "carry": is_my_carry,
-                         "pair": pair, "tostar": tostar, "for": who,
+                         "pair": pair, "tostar": tostar, "for": who, "role": role,
                          "partner": partner_name if theirs else None})
 
         # Gold-budget sequencing: with limited gold, keep the highest-priority buys you can
