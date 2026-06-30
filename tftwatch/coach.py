@@ -452,10 +452,11 @@ class CoachRoland:
             mine = bool(name) and (is_my_carry or nl in my_units)
             # copies you'd hold if you bought the shop copies of this unit. 3 copies = a 2★.
             copies = owned_counts[nl] + shop_counts[nl]
+            already_two_star = owned_counts[nl] >= 3   # already merged a 2★ -> not a pair to chase
             # Only chase a pair if the unit is IN your comp (or you haven't committed to one
             # yet). Don't tell a committed Space Groove player to buy Lissandra just because
             # they happen to hold a copy — off-comp pairs are a trap once you have a plan.
-            pair = bool(name) and copies >= 2 and (mine or not comp)
+            pair = bool(name) and copies >= 2 and (mine or not comp) and not already_two_star
             tostar = ("makes 2★" if copies >= 3 else f"{copies}/3 to 2★") if pair else None
             theirs = bool(name) and not mine and not pair and partner_comp and (nl == p_carry or nl in p_units)
             action, who = None, None

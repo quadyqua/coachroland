@@ -40,6 +40,15 @@ def test_two_copies_is_not_a_two_star():
     assert "makes" in (view2[0]["tostar"] or "")
 
 
+def test_pair_math_caps_at_two_star():
+    # already own 3 of a unit (a completed 2-star) -> a 4th copy isn't a pair to chase
+    v = coach.shop_plan([{"name": "Caitlyn", "cost": 1}], None, 9, owned=["Caitlyn"] * 3)
+    assert v[0]["pair"] is False and v[0]["tostar"] is None
+    # own 2 + 1 in shop -> completes the 2-star
+    v2 = coach.shop_plan([{"name": "Caitlyn", "cost": 1}], None, 9, owned=["Caitlyn"] * 2)
+    assert "makes" in (v2[0]["tostar"] or "")
+
+
 def test_gold_sequencing_locks_what_you_cant_afford():
     # Two 1-cost pairs + a partner buy, but only 1 gold: keep one, lock/skip the rest.
     shop = [{"name": "Caitlyn", "cost": 1}, {"name": "Caitlyn", "cost": 1},
