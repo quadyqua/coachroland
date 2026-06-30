@@ -83,6 +83,17 @@ def read_lobby_pil(img: "Image.Image", crop=RIGHT_PANEL) -> dict:
     name_tol = gap * 0.5      # a name shares the row band with its HP
     unit_tol = gap * 0.7      # the spiked champ sits a bit below the name
 
+    def nearest_unit(cy):                          # the spiked carry on this row, if any
+        for b in boxes:
+            m = _roster_match(b["text"])
+            if m and abs(b["cy"] - cy) <= unit_tol:
+                return m
+        return None
+
+    def is_name(b):                                # a player-name token, not a champ/junk
+        return (any(c.isalpha() for c in b["text"]) and len(b["text"]) >= 2
+                and not _roster_match(b["text"]))
+
     # candidate name tokens = alphabetic, not a roster champion
     used = set()
     players = []
@@ -90,26 +101,31 @@ def read_lobby_pil(img: "Image.Image", crop=RIGHT_PANEL) -> dict:
         cy = hp["cy"]
         name, name_box = None, None
         for b in boxes:
-            if id(b) in used or not any(c.isalpha() for c in b["text"]):
-                continue
-            if _roster_match(b["text"]):           # that's a unit, not a name
+            if id(b) in used or not is_name(b):
                 continue
             if b["x0"] >= hp["cx"]:                # name is left of the HP number
                 continue
             if abs(b["cy"] - cy) <= name_tol and (name_box is None
                                                   or abs(b["cy"] - cy) < abs(name_box["cy"] - cy)):
                 name, name_box = b["text"], b
-        unit = None
-        for b in boxes:
-            m = _roster_match(b["text"])
-            if m and abs(b["cy"] - cy) <= unit_tol:
-                unit = m
-                break
         if name_box:
             used.add(id(name_box))
         players.append({"name": name, "hp": int(hp["text"]),
-                        "unit": unit, "stars": None,
+                        "unit": nearest_unit(cy), "stars": None,
                         "is_self": name is None})   # the highlighted YOU row has no name
+
+    # Double Up shows ONE HP per team (4 numbers) but 8 players, so the HP anchors above
+    # miss half the names. ONLY when there are clearly more names than HP rows (the team-HP
+    # layout) do we add the leftover names, sharing the nearest team HP. Standard games have
+    # one HP per player, so this stays off and we don't pick up floating UI labels.
+    name_count = sum(1 for b in boxes if is_name(b))
+    if name_count > len(hp_boxes) + 1:
+        for b in sorted((x for x in boxes if id(x) not in used and is_name(x)),
+                        key=lambda b: b["cy"]):
+            used.add(id(b))
+            hp = min(hp_boxes, key=lambda h: abs(h["cy"] - b["cy"])) if hp_boxes else None
+            players.append({"name": b["text"], "hp": int(hp["text"]) if hp else None,
+                            "unit": nearest_unit(b["cy"]), "stars": None, "is_self": False})
     return {"players": players, "next_opponent": None}
 
 
