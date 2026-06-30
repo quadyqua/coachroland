@@ -91,8 +91,10 @@ def read_lobby_pil(img: "Image.Image", crop=RIGHT_PANEL) -> dict:
         return None
 
     def is_name(b):                                # a player-name token, not a champ/junk
-        return (any(c.isalpha() for c in b["text"]) and len(b["text"]) >= 2
-                and not _roster_match(b["text"]))
+        t = b["text"].strip()
+        if not (any(c.isalpha() for c in t) and len(t) >= 2) or _roster_match(t):
+            return False
+        return not re.match(r"(?i)^(lvl|level)", t)   # floating "Level N!" nameplate, not a name
 
     # candidate name tokens = alphabetic, not a roster champion
     used = set()
