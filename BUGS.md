@@ -40,3 +40,10 @@ and the dashboard `/state`). Newest first.
   inferred from shop diffs. Needs a recognizer trained on real frame crops (`--save-frames`).
 - **God / augment choice readers** — built but not yet validated against a real captured
   frame of those (transient screens; capture-timing is the blocker).
+- **Some comp final-boards are inaccurate** — a CDragon audit (`_audit`-style, now guarded by
+  `test_comp_boards_have_real_units`) found a few boards short on their own defining trait
+  (`mecha_sol` 1 Mecha, `viktor_nami` 0 Primordian, `challenger_mf` 1 Challenger) from the
+  noisy source parse. Low impact: the comp *grounding* matches on the claimed trait, not the
+  board, so the right comp is still picked — but the displayed board + buy roles for those few
+  comps are off. Needs re-verification against a clean meta source (Mobalytics blocks scraping;
+  TFTAcademy parses noisily). Fixed so far: removed a stray "Relic" from `nova_vex`.

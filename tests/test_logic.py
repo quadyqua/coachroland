@@ -151,6 +151,13 @@ def test_ledger_accumulates_contest():
     assert L.contested_carries() == ["Mordekaiser"]          # Jhin no longer 2+
 
 
+def test_comp_boards_have_real_units():
+    summons = {"ivern minion", "galio"}      # legit summoned board units (not shoppable champs)
+    for key, c in compguide.COMPS.items():
+        for u in (c.get("final_board") or []):
+            assert u.lower() in summons or cdragon.champ_traits(u), f"{key}: '{u}' is not a real unit"
+
+
 def test_choose_god_prefers_fit_low_variance():
     rec = coach.choose_god(["Thresh", "Soraka"], "fast9")[0]   # Soraka fits fast9 + low variance
     assert "Soraka" in rec["text"]

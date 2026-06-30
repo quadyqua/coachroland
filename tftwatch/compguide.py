@@ -42,7 +42,7 @@ COMPS = {
         "traits": ["N.O.V.A.", "Vanguard"],
         "carry_items": ["Guinsoo's Rageblade", "Rabadon's Deathcap", "Rapid Firecannon"],
         "early_units": ["Graves", "Akali", "Fiora"],
-        "final_board": ["Relic", "Aatrox", "Akali", "Rhaast", "Nunu", "Shen", "Blitzcrank", "Fiora", "Graves", "Vex"],
+        "final_board": ["Aatrox", "Akali", "Rhaast", "Nunu", "Shen", "Blitzcrank", "Fiora", "Graves", "Vex"],
         "level_plan": "AD win-streak opener (Graves/Vex items). Push level 9 by stage 4, stay above 80 HP.",
         "double_up": "Backline carry — strong N.O.V.A. frontline lets your partner go damage.",
         "counters": ["Weak early — punish before 9", "Reposition vs assassins"],
