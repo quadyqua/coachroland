@@ -281,11 +281,14 @@ def read_augments_pil(img: "Image.Image", crop=AUGMENT_REGION, slots=AUGMENT_SLO
         if len(t) < 4 or len(t.split()) > 4:        # an augment name, not a description line
             continue
         tl = t.lower()
-        if tl in gods:                              # don't match "Yasuo's Boon" off a bare "Yasuo"
+        if tl in gods or "@" in t or "boon" in tl:  # skip God names, God-quest boons, @template@ text
             continue
         for a in aug_names:
             al = a.lower()
-            if (tl == al or (len(tl) >= 5 and (tl in al or al in tl))) and a not in found:
+            # the card shows the FULL augment name, so require an exact match (or the augment
+            # name contained in a slightly-longer OCR token) — never a short name inside a
+            # description line, which produced false positives on God-quest screens.
+            if (tl == al or (len(al) >= 6 and al in tl)) and a not in found:
                 found.append(a)
     return {"augments": found}
 

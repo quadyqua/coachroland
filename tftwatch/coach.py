@@ -352,17 +352,29 @@ class CoachRoland:
 
     # ---- in-game choices: Gods (2 offered) + augments (3 offered) -------------
     def choose_god(self, offered: list[str], playstyle: str = "flex") -> list[dict]:
-        """Pick the better of the 2 offered Gods for your comp's playstyle."""
+        """Pick the better of the 2 offered Gods. Priority for a beginner: a God that FITS
+        your playstyle > lower variance (reliable) > our patch preference order."""
         if not offered:
             return []
         pref = _GOD_PREF.get(playstyle, _GOD_PREF["flex"])
-        pick = sorted(offered, key=lambda g: pref.index(g) if g in pref else 99)[0]
+        var_rank = {"low": 0, "mid": 1, "high": 2}
+
+        def score(g):
+            info = compguide.GODS.get(g, {})
+            best = (info.get("best_for") or "").lower()
+            fits = best in ("any", playstyle) or playstyle in best or best in playstyle
+            return (0 if fits else 1,
+                    var_rank.get(info.get("variance"), 1),
+                    pref.index(g) if g in pref else 99)
+
+        pick = sorted(offered, key=score)[0]
         info = compguide.GODS.get(pick, {})
-        return [_rec(
-            f"God: take {pick}",
-            f"For your {playstyle} comp, {pick} is the better of the two — {info.get('note', '')} "
-            f"({info.get('variance', '?')}-variance).",
-            "buy", priority=ACTIVE_CHOICE, timer=30)]
+        other = next((g for g in offered if g != pick), None)
+        why = (f"{pick} gives {info.get('gives', 'value')} — {info.get('note', '')} "
+               f"({info.get('variance', '?')}-variance).")
+        if other:
+            why += f" Better than {other} for your {playstyle} line."
+        return [_rec(f"God: take {pick}", why, "buy", priority=ACTIVE_CHOICE, timer=30)]
 
     def choose_augment(self, offered: list[str], stage: str = None, traits=None) -> list[dict]:
         """Rank the 3 offered augments. Exact win-% needs live augment-stat data."""
@@ -379,6 +391,9 @@ class CoachRoland:
             if stage and str(stage).startswith("2") and any(k in al for k in
                                                             ("loan", "gold", "income", "econ")):
                 s += 1                                   # econ first on 2-1
+            if stage and str(stage)[:1] in ("4", "5", "6") and any(k in al for k in
+                    ("combat", "damage", "crit", "heal", "health", "armor", "shield")):
+                s += 1                                   # combat augments pay off more late
             return s
 
         pick = sorted(offered, key=score, reverse=True)[0]

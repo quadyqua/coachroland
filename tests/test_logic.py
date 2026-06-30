@@ -151,6 +151,26 @@ def test_ledger_accumulates_contest():
     assert L.contested_carries() == ["Mordekaiser"]          # Jhin no longer 2+
 
 
+def test_choose_god_prefers_fit_low_variance():
+    rec = coach.choose_god(["Thresh", "Soraka"], "fast9")[0]   # Soraka fits fast9 + low variance
+    assert "Soraka" in rec["text"]
+    assert rec["priority"] >= 100 and rec["timer"]             # a timed pick, pinned to top
+
+
+def test_choose_augment_emblem_for_your_trait():
+    recs = coach.choose_augment(["Space Groove Emblem", "Cluttered Mind"],
+                                stage="3-2", traits=["Space Groove"])
+    assert "Space Groove Emblem" in recs[0]["text"]            # emblem that points your comp wins
+
+
+def test_board_from_traits_credits_comp_units():
+    import re
+    comp = compguide.comp_detail("space_groove")
+    rec = coach.comp_progress(comp, owned=[], traits=[{"name": "Space Groove", "count": 5}])[0]
+    got = int(re.search(r"(\d+)/\d+", rec["text"]).group(1))   # credited from traits, no tracker
+    assert got >= 4
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
