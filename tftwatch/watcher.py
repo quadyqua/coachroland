@@ -431,7 +431,7 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         recs = coach.choose_augment(augs, stage=stage_read,
                                                     traits=[t.get("name") for t in (traits_read or [])]) + recs
                     if last_comp and owned_units:    # shopping list from inferred-owned units
-                        recs = recs + coach.comp_progress(last_comp, owned_units)
+                        recs = recs + coach.comp_progress(last_comp, owned_units, traits=traits_read)
 
                     shop_view = (coach.shop_plan(self_read.get("shop"), last_comp,
                                                  self_read.get("gold"), partner_comp=partner_detail,

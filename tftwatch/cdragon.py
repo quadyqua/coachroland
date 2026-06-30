@@ -228,9 +228,15 @@ def current_traits() -> list[str]:
 _champ_traits: dict = {}    # champion display name (lower) -> [trait display names], current set
 
 
+def _norm(s: str) -> str:
+    return "".join(ch for ch in (s or "").lower() if ch.isalnum())
+
+
 def champ_traits(name: str) -> list:
     """Trait display names of a champion in the current set — used to explain WHY a unit is
-    in your comp (does it share your comp's trait, or is it just a frontline body?)."""
+    in your comp (does it share your comp's trait, or is it just a frontline body?).
+
+    Fuzzy-matches the name so a comp's "Nunu" still resolves CDragon's "Nunu & Willump"."""
     if not _champ_traits:
         try:
             data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
@@ -240,7 +246,16 @@ def champ_traits(name: str) -> list:
                     _champ_traits[c["name"].lower()] = list(c.get("traits") or [])
         except Exception:
             pass
-    return _champ_traits.get((name or "").lower(), [])
+    key = (name or "").lower()
+    if key in _champ_traits:
+        return _champ_traits[key]
+    kn = _norm(name)                       # fuzzy: "Nunu" -> "Nunu & Willump"
+    if len(kn) >= 4:
+        for k, v in _champ_traits.items():
+            kk = _norm(k)
+            if kn == kk or kn in kk or kk in kn:
+                return v
+    return []
 
 
 def champ_name(api: str) -> str:

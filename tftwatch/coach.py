@@ -530,15 +530,31 @@ class CoachRoland:
                      "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll at "
                      "level 8 (around stage 4-1).", "info")]
 
-    def comp_progress(self, comp, owned) -> list[dict]:
-        """Shopping list: which of your comp's core units you have (inferred) vs still need.
-        Complements the shop strip — that shows what's available now; this shows the goal."""
+    def comp_progress(self, comp, owned, traits=None) -> list[dict]:
+        """Shopping list: which of your comp's core units you have vs still need.
+
+        'have' comes from shop-diff inference (flaky) refined by your TRAIT counts: if a
+        trait is active at >= the number of your comp's units that carry it, you clearly
+        field all of them — so we can mark those board units as had even if the shop-diff
+        tracker missed the buy (board-from-traits inference)."""
         if not comp:
             return []
         board = comp.get("board") or comp.get("final_board") or comp.get("early_units") or []
         if not board:
             return []
         have = {o.lower() for o in (owned or [])}
+        if traits:
+            active = {(t.get("name") or "").lower(): (t.get("count") or 0) for t in traits}
+            board_trait = {u: {x.lower() for x in cdragon.champ_traits(u)} for u in board}
+            for u in board:
+                if u.lower() in have:
+                    continue
+                for tr in board_trait[u]:
+                    if tr in active:
+                        n_with = sum(1 for b in board if tr in board_trait[b])
+                        if active[tr] >= n_with:          # you field every comp-unit of this trait
+                            have.add(u.lower())
+                            break
         got = [u for u in board if u.lower() in have]
         need = [u for u in board if u.lower() not in have]
         name = comp.get("name") or "your comp"
