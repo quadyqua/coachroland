@@ -263,14 +263,31 @@ def read_items(image_path: str, crop=ITEM_REGION, slots=ITEM_SLOTS) -> dict:
     return read_items_pil(Image.open(image_path).convert("RGB"), crop, slots)
 
 
-# ---- augment choice (3 cards): recognize by icon (free) ------------------------
+# ---- augment choice (3 cards): names are TEXT on the cards -> OCR (like the God screen)
+# Icon matching against flat assets doesn't work (same failure as the bench), but augment
+# NAMES render as text, so we OCR them and match against the current-set augment list. The
+# region is the old icon-era guess; one real augment-choice frame locks the region/threshold.
 AUGMENT_REGION = (0.18, 0.30, 0.82, 0.62)
-AUGMENT_SLOTS = 3
+AUGMENT_SLOTS = 3   # kept for signature compatibility; unused by the OCR reader
 
 
 def read_augments_pil(img: "Image.Image", crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> dict:
-    """{augments:[name]} — the 3 offered augments recognized by icon (free)."""
-    return {"augments": _slots_identify(img, crop, slots, "augment")}
+    """{augments:[name]} — offered augments read by OCR + matched to the set's augment list."""
+    aug_names = [a["name"] for a in cdragon.current_set_augments()]
+    gods = {g.lower() for g in compguide.GODS}      # a bare God name is the God screen, not an augment
+    found = []
+    for b in _boxes(_crop(img, crop)):
+        t = b["text"].strip()
+        if len(t) < 4 or len(t.split()) > 4:        # an augment name, not a description line
+            continue
+        tl = t.lower()
+        if tl in gods:                              # don't match "Yasuo's Boon" off a bare "Yasuo"
+            continue
+        for a in aug_names:
+            al = a.lower()
+            if (tl == al or (len(tl) >= 5 and (tl in al or al in tl))) and a not in found:
+                found.append(a)
+    return {"augments": found}
 
 
 def read_augments(image_path: str, crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> dict:

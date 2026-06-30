@@ -427,6 +427,9 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     if not brain_on and offered and offered.get("kind") == "god" and offered.get("options"):
                         recs = coach.choose_god(offered["options"],
                                                 (last_comp or {}).get("playstyle") or "flex") + recs
+                    if not brain_on and augs and not offered:   # augment screen (not the God screen)
+                        recs = coach.choose_augment(augs, stage=stage_read,
+                                                    traits=[t.get("name") for t in (traits_read or [])]) + recs
                     if last_comp and owned_units:    # shopping list from inferred-owned units
                         recs = recs + coach.comp_progress(last_comp, owned_units)
 
