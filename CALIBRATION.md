@@ -36,7 +36,7 @@ from shop diffs (`tracker.py`).
 
 ## Reference frame + expected reads
 
-- **`fixtures/ref_1440p_planning.jpg`** — a real 2560×1440 planning-phase frame (stage 3-1).
+- **`fixtures/ref_1440p_planning.jpg`** — a real 2560×1440 Double Up planning-phase frame (stage 3-2).
 - **`fixtures/ref_1440p_reads.json`** — the regions + the expected reader output on that frame.
 
 ## Verify on another machine (no live game needed)

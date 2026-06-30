@@ -142,6 +142,34 @@
           "unit": null,
           "stars": null,
           "is_self": false
+        },
+        {
+          "name": "Cobble",
+          "hp": 88,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        },
+        {
+          "name": "BlackKnight42",
+          "hp": 84,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        },
+        {
+          "name": "VD",
+          "hp": 74,
+          "unit": null,
+          "stars": null,
+          "is_self": false
+        },
+        {
+          "name": "QuadyQua",
+          "hp": 73,
+          "unit": null,
+          "stars": null,
+          "is_self": false
         }
       ],
       "next_opponent": null
