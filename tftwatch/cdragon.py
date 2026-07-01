@@ -271,8 +271,3 @@ def champ_cost(api: str) -> int:
 def trait_name(api: str) -> str:
     _load()
     return _trait_name.get(api) or humanize(api)
-
-
-def trait_name(api: str) -> str:
-    _load()
-    return _trait_name.get(api) or humanize(api)

@@ -203,9 +203,9 @@ class CoachRoland:
         if mate and not overlap:
             recs.append(_rec(
                 f"Your partner anchors {(teammate_comp.get('carries') or ['their line'])[0]}",
-                f"You're not contesting each other — good. Build a comp that covers what they don't "
-                f"(different damage type / a frontline if they're squishy) so your team beats more "
-                f"matchups together.",
+                "You're not contesting each other — good. Build a comp that covers what they don't "
+                "(different damage type / a frontline if they're squishy) so your team beats more "
+                "matchups together.",
                 "info"))
         return recs
 
@@ -404,29 +404,6 @@ class CoachRoland:
             "intentionally not shown — Riot's TFT policy prohibits it; save stat review for post-game.)",
             "buy", stat=None,
             priority=ACTIVE_CHOICE, timer=30)]
-
-    def shop_advice(self, shop, comp) -> list[dict]:
-        """Quick wins: units sitting in your shop RIGHT NOW that belong in your comp."""
-        if not shop or not comp:
-            return []
-        carry = (comp.get("carry") or "").lower()
-        units = {u.lower() for u in (comp.get("early_units") or [])}
-        units |= {u.lower() for u in (comp.get("board") or comp.get("final_board") or [])}
-        out = []
-        for slot in shop:
-            n = (slot or {}).get("name") or ""
-            nl = n.lower()
-            if not n:
-                continue
-            if nl == carry:
-                out.append(_rec(f"BUY {n} now — your carry",
-                                f"{n} is your main carry. Grab every copy you can find to upgrade it sooner.",
-                                "buy"))
-            elif nl in units:
-                out.append(_rec(f"BUY {n} — fits your comp",
-                                f"{n} is part of {comp.get('name', 'your comp')}. Pick it up while it's in your shop.",
-                                "buy"))
-        return out
 
     def shop_plan(self, shop, comp, gold=None, partner_comp=None, partner_name=None,
                   owned=None) -> list[dict]:

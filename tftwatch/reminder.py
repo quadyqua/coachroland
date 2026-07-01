@@ -7,7 +7,6 @@ Note: it works on a time interval (TFT rounds are ~30-40s), not true round
 detection -- knowing the actual round number would require reading the screen,
 which is a later (opt-in) capture feature. Tune --interval to taste.
 """
-import sys
 import time
 
 

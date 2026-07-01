@@ -391,7 +391,7 @@ if __name__ == "__main__":
         l, t, r, b = BENCH_REGION
         band = img.crop((int(w * l), int(h * t), int(w * r), int(h * b)))
         band.save("bench_band.png")
-        print(f"saved cropped bench band -> bench_band.png  (check it frames the 9 slots)")
+        print("saved cropped bench band -> bench_band.png  (check it frames the 9 slots)")
         sw = band.width / BENCH_SLOTS
         for i in range(BENCH_SLOTS):
             cell = band.crop((int(i * sw), 0, int((i + 1) * sw), band.height))

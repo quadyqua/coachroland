@@ -5,7 +5,6 @@ board) plus their carry units (3-star or heavily itemized). We aggregate these
 across a player's recent games to find what they spam, then predict their next
 game with recency-weighted frequency.
 """
-from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .cdragon import champ_name, champ_cost, trait_name
