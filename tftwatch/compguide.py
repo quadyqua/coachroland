@@ -30,7 +30,7 @@ COMPS = {
     "stargazer_xayah": {
         "name": "Xayah Stargazer", "carry": "Xayah", "playstyle": "fast8", "tier": "S",
         "traits": ["Stargazer", "Vanguard", "Bastion"],
-        "carry_items": ["Runaan's Hurricane", "Runaan's Hurricane", "Rapid Firecannon"],
+        "carry_items": ["Runaan's Untamed Hurricane", "Runaan's Untamed Hurricane", "Rapid Firecannon"],
         "early_units": ["Samira", "Aatrox", "Jax"],
         "final_board": ["Aatrox", "Jax", "Maokai", "Rhaast", "Nunu", "Tahm Kench", "Xayah", "Jhin"],
         "level_plan": "Samira as temp carry early. Level to 8, roll for Xayah 2 + upgraded frontline.",
@@ -50,7 +50,7 @@ COMPS = {
     "space_groove": {
         "name": "Space Groove (In The Groove)", "carry": "Nami", "playstyle": "fast8", "tier": "B",
         "traits": ["Space Groove"],
-        "carry_items": ["Leviathan", "Jeweled Gauntlet", "Giant's Belt"],
+        "carry_items": ["Nashor's Tooth", "Jeweled Gauntlet", "Giant's Belt"],
         "early_units": ["Nami", "Riven", "Nunu", "Blitzcrank"],
         "final_board": ["Gwen", "Pantheon", "Ornn", "Nunu", "Tahm Kench", "Nami", "Riven", "Shen", "Blitzcrank"],
         "level_plan": "Get 5 Space Groove active. Fast 8, play around Nami / Riven / Nunu / Blitzcrank.",
@@ -80,7 +80,7 @@ COMPS = {
     "yi_marauder": {
         "name": "Yi Marawlers (Master Yi)", "carry": "Master Yi", "playstyle": "fast8", "tier": "A",
         "traits": ["Marauder", "Brawler", "Psionic", "N.O.V.A.", "Challenger"],
-        "carry_items": ["Guardian Angel", "Madred's Bloodrazor", "Guinsoo's Rageblade"],
+        "carry_items": ["Guardian Angel", "Giant Slayer", "Guinsoo's Rageblade"],
         "early_units": ["Master Yi", "Gragas", "Urgot"],
         "final_board": ["Master Yi", "Kindred", "Tahm Kench", "Maokai", "Gragas", "Fiora", "Bel'Veth", "Urgot"],
         "level_plan": "4-cost Fast 8. Level 8 at natural intervals, roll for Master Yi 2 with upgraded Brawlers.",
@@ -110,7 +110,7 @@ COMPS = {
     "veigar_printer": {
         "name": "Veigar Printer (Meeple)", "carry": "Veigar", "playstyle": "reroll", "tier": "A",
         "traits": ["Meeple", "Bastion", "Dark Star"],
-        "carry_items": ["Leviathan", "Leviathan", "Jeweled Gauntlet"],
+        "carry_items": ["Nashor's Tooth", "Nashor's Tooth", "Jeweled Gauntlet"],
         "early_units": ["Veigar", "Poppy", "Lissandra"],
         "final_board": ["Veigar", "Poppy", "Lissandra", "Ivern Minion", "Mordekaiser", "Illaoi", "Rammus", "Bard"],
         "level_plan": "AP win-streak with Veigar 2 stage 2. Slow-roll above 50g for 3-star Veigar/Poppy/Lissandra.",
@@ -120,7 +120,7 @@ COMPS = {
     "darkstar_lissandra": {
         "name": "Dark Star Lissandra", "carry": "Lissandra", "playstyle": "reroll", "tier": "A",
         "traits": ["Dark Star", "Anima", "Vanguard"],
-        "carry_items": ["Jeweled Gauntlet", "Leviathan", "Leviathan"],
+        "carry_items": ["Jeweled Gauntlet", "Nashor's Tooth", "Nashor's Tooth"],
         "early_units": ["Lissandra", "Cho'Gath"],
         "final_board": ["Lissandra", "Cho'Gath", "Ezreal", "Mordekaiser", "Pantheon", "Kai'Sa", "Karma", "Galio", "Jhin"],
         "level_plan": "Win-streak with Lissandra 2 + AP items stage 2. Slow-roll above 50g for Lissandra/Cho 3, aim 6 Dark Star.",
@@ -130,7 +130,7 @@ COMPS = {
     "vanguard_zoe": {
         "name": "Vanguard Zoe", "carry": "Zoe", "playstyle": "reroll", "tier": "C",
         "traits": ["Vanguard", "Shepherd"],
-        "carry_items": ["Jeweled Gauntlet", "Power Gauntlet", "Rabadon's Deathcap"],
+        "carry_items": ["Jeweled Gauntlet", "Crownguard", "Rabadon's Deathcap"],
         "early_units": ["Zoe", "Leona", "Mordekaiser"],
         "final_board": ["Zoe", "Leona", "Mordekaiser", "Illaoi", "Leblanc", "Karma", "Nunu", "Bard"],
         "level_plan": "Win-streak Zoe/Leona stage 2. Level 6 and roll for 4 Vanguard + 3 Shepherd, 3-star Leona.",
@@ -139,8 +139,8 @@ COMPS = {
         "source": "tftacademy (17.6)"},
     "shepherd_pie": {
         "name": "Shepherd Pie (LeBlanc)", "carry": "LeBlanc", "playstyle": "fast8", "tier": "A",
-        "traits": ["Shepherd", "Vanguard", "Summon"],
-        "carry_items": ["Guinsoo's Rageblade", "Madred's Bloodrazor", "Archangel's Staff"],
+        "traits": ["Shepherd", "Vanguard"],
+        "carry_items": ["Guinsoo's Rageblade", "Giant Slayer", "Archangel's Staff"],
         "early_units": ["LeBlanc", "Karma", "Lissandra"],
         "final_board": ["LeBlanc", "Karma", "Lissandra", "Sona", "Morgana", "Illaoi", "Blitzcrank", "Ivern Minion"],
         "level_plan": "Level to 8 and roll heavily for 5 Shepherd + a Vanguard frontline.",
@@ -159,18 +159,18 @@ COMPS = {
         "source": "tftacademy (17.6)"},
     "ap_shepherd_sona": {
         "name": "AP Shepherd (Sona 9-5)", "carry": "Sona", "playstyle": "fast9", "tier": "B",
-        "traits": ["Invoker", "Shepherd", "Vanguard"],
+        "traits": ["Shepherd", "Vanguard", "Psionic"],
         "carry_items": ["Blue Buff", "Morellonomicon", "Statikk Shiv"],
         "early_units": ["Sona", "Nunu", "Blitzcrank"],
-        "final_board": ["Sona", "Mordekaiser", "Illaoi", "Rhaast", "Karma", "Nunu", "Blitzcrank", "Bard", "Ivern Minion"],
+        "final_board": ["Sona", "LeBlanc", "Mordekaiser", "Illaoi", "Rhaast", "Karma", "Nunu", "Blitzcrank", "Ivern Minion"],
         "level_plan": "Win-streak Vanguards, fast 9, itemize whichever upgraded unit you hit first.",
         "double_up": "AP fast-9 — frontline-heavy team anchor.",
         "counters": ["MR / dive backline"],
         "source": "tftacademy (17.6)"},
     "corki_riven": {
         "name": "Corki Riven (Meeple)", "carry": "Corki", "playstyle": "fast8", "tier": "B",
-        "traits": ["Meeple", "Sniper", "Vanguard", "Sorcerer"],
-        "carry_items": ["Last Whisper", "Deathblade", "Power Gauntlet"],
+        "traits": ["Meeple", "Sniper", "Vanguard"],
+        "carry_items": ["Last Whisper", "Deathblade", "Infinity Edge"],
         "early_units": ["Corki", "Rammus", "Riven"],
         "final_board": ["Corki", "Riven", "Rammus", "Galio", "Fizz", "Poppy", "Ivern Minion", "Milio"],
         "level_plan": "Win-streak Meeple/Snipers. Level 8, roll for Corki 2 + Rammus 2 + Riven, then push 9.",
@@ -180,9 +180,9 @@ COMPS = {
     "challenger_mf": {
         "name": "Challenger Miss Fortune", "carry": "Miss Fortune", "playstyle": "reroll", "tier": "B",
         "traits": ["Challenger", "Primordian"],
-        "carry_items": ["Guinsoo's Rageblade", "Deathblade", "Madred's Bloodrazor"],
+        "carry_items": ["Guinsoo's Rageblade", "Deathblade", "Giant Slayer"],
         "early_units": ["Miss Fortune", "Ornn"],
-        "final_board": ["Miss Fortune", "Ornn", "Aatrox", "Maokai", "Rhaast", "Urgot", "Bel'Veth"],
+        "final_board": ["Miss Fortune", "Ornn", "Aatrox", "Maokai", "Rhaast", "Bel'Veth", "Jinx", "Kindred"],
         "level_plan": "Beginner reroll. Win-streak MF + Primordian, slow-roll stage 4 for 3-star MF.",
         "double_up": "Fast-attacking backline carry — pair with a tanky partner.",
         "counters": ["CC shuts her down", "Out-scaled late"],
@@ -190,7 +190,7 @@ COMPS = {
     "nova_kindred": {
         "name": "N.O.V.A. Kindred", "carry": "Kindred", "playstyle": "fast8", "tier": "B",
         "traits": ["N.O.V.A.", "Brawler"],
-        "carry_items": ["Guinsoo's Rageblade", "Runaan's Hurricane", "Madred's Bloodrazor"],
+        "carry_items": ["Guinsoo's Rageblade", "Runaan's Untamed Hurricane", "Giant Slayer"],
         "early_units": ["Kindred", "Caitlyn", "Aatrox"],
         "final_board": ["Aatrox", "Caitlyn", "Akali", "Bel'Veth", "Maokai", "Tahm Kench", "Kindred", "Morgana"],
         "level_plan": "Easy fast 8. Level 8, roll for Kindred 2 + Morgana 2; push 9 for 5-cost flex.",
@@ -199,8 +199,8 @@ COMPS = {
         "source": "tftacademy (17.6)"},
     "nova_reroll": {
         "name": "N.O.V.A. Reroll (Caitlyn)", "carry": "Caitlyn", "playstyle": "reroll", "tier": "C",
-        "traits": ["N.O.V.A.", "Vanguard", "Sentinel"],
-        "carry_items": ["Guinsoo's Rageblade", "Runaan's Hurricane", "Madred's Bloodrazor"],
+        "traits": ["N.O.V.A.", "Vanguard"],
+        "carry_items": ["Guinsoo's Rageblade", "Runaan's Untamed Hurricane", "Giant Slayer"],
         "early_units": ["Caitlyn", "Aatrox"],
         "final_board": ["Aatrox", "Caitlyn", "Maokai", "Kindred", "Rammus", "Corki", "Shen", "Poppy"],
         "level_plan": "1-cost reroll. Slow-roll stage 3 for Caitlyn 3 + Aatrox 3, cap with Shen at 8-9.",
@@ -209,7 +209,7 @@ COMPS = {
         "source": "tftacademy (17.6)"},
     "karnami_flex": {
         "name": "KarNami Flex (Karma)", "carry": "Karma", "playstyle": "fast8", "tier": "B",
-        "traits": ["Vanguard", "Summoner", "Mystic"],
+        "traits": ["Vanguard", "Voyager"],
         "carry_items": ["Statikk Shiv", "Spear of Shojin", "Morellonomicon"],
         "early_units": ["Karma", "Nami", "Nunu"],
         "final_board": ["Karma", "Nami", "Nunu", "Lissandra", "Illaoi", "Ivern Minion", "Bard", "Galio"],
@@ -220,7 +220,7 @@ COMPS = {
     "fateweaver_tf": {
         "name": "Fateweaver Reroll (Twisted Fate)", "carry": "Twisted Fate", "playstyle": "reroll", "tier": "C",
         "traits": ["Fateweaver", "Rogue", "Vanguard"],
-        "carry_items": ["Leviathan", "Rabadon's Deathcap", "Leviathan"],
+        "carry_items": ["Nashor's Tooth", "Rabadon's Deathcap", "Nashor's Tooth"],
         "early_units": ["Twisted Fate", "Jax", "Caitlyn"],
         "final_board": ["Aatrox", "Talon", "Caitlyn", "Twisted Fate", "Milio", "Jax", "Riven", "Corki"],
         "level_plan": "1-cost reroll. Slow-roll above 50g for 3-stars (TF > Jax > Cait/Talon > Aatrox).",
@@ -258,8 +258,8 @@ COMPS = {
         "counters": ["Anti-heal vs Gwen", "Out-scaled late"],
         "source": "tftacademy (17.6)"},
     "viktor_nami": {
-        "name": "Viktor B4L (Primordian)", "carry": "Viktor", "playstyle": "fast8", "tier": "C",
-        "traits": ["Primordian", "Vanguard", "Anima"],
+        "name": "Viktor B4L (Psionic)", "carry": "Viktor", "playstyle": "fast8", "tier": "C",
+        "traits": ["Psionic", "Conduit", "Vanguard"],
         "carry_items": ["Jeweled Gauntlet", "Rabadon's Deathcap", "Statikk Shiv"],
         "early_units": ["Viktor", "Nami", "Lissandra"],
         "final_board": ["Lissandra", "Ivern Minion", "Mordekaiser", "Pyke", "Rhaast", "Illaoi", "Viktor", "Nami"],
@@ -270,7 +270,7 @@ COMPS = {
     "lulu_reroll": {
         "name": "Fountain Lulu (Stargazer)", "carry": "Lulu", "playstyle": "reroll", "tier": "B",
         "traits": ["Stargazer", "Marauder"],
-        "carry_items": ["Leviathan", "Leviathan", "Jeweled Gauntlet"],
+        "carry_items": ["Nashor's Tooth", "Nashor's Tooth", "Jeweled Gauntlet"],
         "early_units": ["Lulu", "Jax", "Milio"],
         "final_board": ["Aatrox", "Twisted Fate", "Jax", "Milio", "Pantheon", "Maokai", "Rhaast", "Lulu"],
         "level_plan": "3-cost reroll. Level 6 at 3-2, slow-roll stage 4 for 3-star Lulu, then level 8.",

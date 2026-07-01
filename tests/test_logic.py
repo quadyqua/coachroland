@@ -151,6 +151,21 @@ def test_ledger_accumulates_contest():
     assert L.contested_carries() == ["Mordekaiser"]          # Jhin no longer 2+
 
 
+def test_comp_traits_and_items_are_real():
+    import json
+    real_traits = {t.lower() for t in cdragon.current_traits()}
+    data = json.loads(cdragon.DATA_FILE.read_text(encoding="utf-8"))
+    def norm(s): return "".join(c for c in (s or "").lower() if c.isalnum())
+    items = {norm(it["name"]) for it in data.get("items", []) if it.get("name")}
+    for key, c in compguide.COMPS.items():
+        for t in (c.get("traits") or []):
+            assert t.lower() in real_traits, f"{key}: trait '{t}' isn't a real Set trait"
+        for it in (c.get("carry_items") or []):
+            n = norm(it)
+            ok = n in items or any((len(n) >= 5 and (n in k or k in n)) for k in items)
+            assert ok, f"{key}: carry item '{it}' isn't a real item"
+
+
 def test_comp_boards_have_real_units():
     summons = {"ivern minion", "galio"}      # legit summoned board units (not shoppable champs)
     for key, c in compguide.COMPS.items():
