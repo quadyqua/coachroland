@@ -45,6 +45,11 @@ and the dashboard `/state`). Newest first.
   inferred from shop diffs. Needs a recognizer trained on real frame crops (`--save-frames`).
 - **God / augment choice readers** — built but not yet validated against a real captured
   frame of those (transient screens; capture-timing is the blocker).
+- **Artifact Anvil not advised.** Standard completed items are covered, and a *radiant* of a
+  BIS item is caught + flagged `radiant` (a strict upgrade). But the Artifact-Anvil pool
+  (Titanic Hydra, Void Gauntlet, Blighting Jewel, … — 74 items) has no reader or "which
+  artifact for this carry" knowledge base. Needs both (the reader wants one live anvil frame).
+  Item-emblems similar (augment-emblems are already weighted in `choose_augment`).
 - **Deep comp accuracy (win-rates / exact splash units)** — comp tiers and the exact
   optimal splash units still come from a hand-curated snapshot, not live stats. The
   structure (carry, traits, board, items) is now CDragon-validated (see below), but the

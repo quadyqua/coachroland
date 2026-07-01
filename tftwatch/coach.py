@@ -606,7 +606,10 @@ class CoachRoland:
         """When you're offered items (armory/anvil), flag which belong on your carry.
 
         Matches each offered item/component against the carry's BIS items + the
-        components that build them. Returns [{name, take, carry}] for the UI.
+        components that build them, so a RADIANT version of a BIS item (a strict upgrade)
+        is caught too and marked `radiant`. Returns [{name, take, carry, radiant}].
+        NOTE: Artifact-Anvil items (Titanic Hydra, Void Gauntlet, …) are a separate pool
+        this doesn't yet advise on — see BUGS.md.
         """
         if not offered or not comp:
             return []
@@ -625,7 +628,8 @@ class CoachRoland:
         for it in offered:
             ni = norm(it)
             take = bool(ni) and any(ni == w or (len(ni) >= 4 and (ni in w or w in ni)) for w in want)
-            out.append({"name": it, "take": take, "carry": carry})
+            radiant = take and "radiant" in (it or "").lower()   # radiant of a BIS = strict upgrade
+            out.append({"name": it, "take": take, "carry": carry, "radiant": radiant})
         return out
 
     def item_holder_advice(self, comp) -> list[dict]:
