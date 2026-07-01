@@ -6,6 +6,11 @@ and the dashboard `/state`). Newest first.
 
 ## Fixed
 
+- **Comp database validated against CDragon.** A full audit of all 26 comps found and fixed
+  15 with issues: invented traits (Summon/Invoker/Sorcerer/Sentinel/Summoner/Mystic), wrong
+  item names (Leviathan→Nashor's Tooth, Madred's Bloodrazor→Giant Slayer, Power Gauntlet,
+  Runaan's), and boards that couldn't field their own trait. Now 0 issues, locked by
+  `test_comp_traits_and_items_are_real` + `test_comp_boards_have_real_units`.
 - **Advice contradicted the comp panel.** On a combat / transition / choice-screen frame
   the trait read is empty, so the rules path fell back to "no comp → suggest open lines"
   while the committed comp was still shown — telling you to switch off your own line. Now
@@ -40,10 +45,7 @@ and the dashboard `/state`). Newest first.
   inferred from shop diffs. Needs a recognizer trained on real frame crops (`--save-frames`).
 - **God / augment choice readers** — built but not yet validated against a real captured
   frame of those (transient screens; capture-timing is the blocker).
-- **Some comp final-boards are inaccurate** — a CDragon audit (`_audit`-style, now guarded by
-  `test_comp_boards_have_real_units`) found a few boards short on their own defining trait
-  (`mecha_sol` 1 Mecha, `viktor_nami` 0 Primordian, `challenger_mf` 1 Challenger) from the
-  noisy source parse. Low impact: the comp *grounding* matches on the claimed trait, not the
-  board, so the right comp is still picked — but the displayed board + buy roles for those few
-  comps are off. Needs re-verification against a clean meta source (Mobalytics blocks scraping;
-  TFTAcademy parses noisily). Fixed so far: removed a stray "Relic" from `nova_vex`.
+- **Deep comp accuracy (win-rates / exact splash units)** — comp tiers and the exact
+  optimal splash units still come from a hand-curated snapshot, not live stats. The
+  structure (carry, traits, board, items) is now CDragon-validated (see below), but the
+  *meta ranking* refreshes per patch and ideally auto-pulls from a stats API later.
