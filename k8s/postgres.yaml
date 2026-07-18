@@ -1,0 +1,80 @@
+# --- Storage: a durable volume that outlives any pod -------------------------
+# The PersistentVolumeClaim (PVC) is a request for storage. Docker Desktop's
+# built-in storage class fulfills it. This volume exists independently of the
+# Postgres pod, so when the pod dies the data stays put.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+spec:
+  accessModes:
+    - ReadWriteOnce          # mounted read-write by a single node (fine for one DB)
+  resources:
+    requests:
+      storage: 1Gi
+---
+# --- The database itself -----------------------------------------------------
+# One replica: Postgres is stateful, its data lives in the PVC above. We use the
+# Recreate strategy so we never have two Postgres pods writing the same volume.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: tftwatch
+            - name: POSTGRES_USER
+              value: tftwatch
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-auth      # created by hand, not committed
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata   # subdir keeps the mount root clean
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "tftwatch", "-d", "tftwatch"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data       # <-- attaches the durable volume
+---
+# --- Service: a stable internal address --------------------------------------
+# Pods get random IPs, but this Service name "postgres" is constant. The scout
+# pods will connect to the DB at host "postgres" on port 5432.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

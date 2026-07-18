@@ -59,6 +59,29 @@ python -m tftwatch.cli scout "Name#EUW" --matches 25 --platform euw1 --region eu
 Gives, per opponent: rank, most-played comps (avg placement), and a next-game prediction;
 plus the lobby-wide contested-lines read.
 
+## Cloud scout service (Docker + Kubernetes)
+
+The scout also runs as a **containerized HTTP service on Kubernetes** — the "cloud brain"
+half of the project (public Riot data only, no screen reading), split out from the desktop
+client so it can run as a stateless, scalable service.
+
+```
+browser → Ingress (scout.localhost) → Service → scout pods ×2 → Postgres + PersistentVolume
+```
+
+- **FastAPI** service (`tftwatch/api.py`) — `GET /scout?riot_id=Name%23TAG`, plus `/healthz` and auto-docs at `/docs`
+- **Postgres** match cache (`tftwatch/cache.py`) — immutable match data cached across pod restarts (~7.5× faster on a cache hit)
+- **Kubernetes** (`k8s/`) — Deployment (2 self-healing replicas), Service, Secrets, ConfigMap, PersistentVolumeClaim, and nginx Ingress
+
+```bash
+docker build -t tftwatch-scout:v2 .
+kubectl create secret generic riot-api      --from-literal=RIOT_API_KEY="RGAPI-..."
+kubectl create secret generic postgres-auth --from-literal=POSTGRES_PASSWORD="devpassword"
+kubectl apply -f k8s/          # → http://scout.localhost/docs
+```
+
+**Full architecture, walkthrough, and design decisions: [k8s/README.md](k8s/README.md).**
+
 ## Post-game review
 
 ```bash

@@ -1,0 +1,14 @@
+# Non-secret configuration, decoupled from the Deployment.
+# The counterpart to a Secret: same mechanism, but for values that aren't
+# sensitive. Edit config here and roll out — no need to touch the Deployment.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scout-config
+data:
+  RIOT_PLATFORM: "na1"
+  RIOT_REGION: "americas"
+  PGHOST: "postgres"       # the Postgres Service name = its in-cluster DNS address
+  PGPORT: "5432"
+  PGUSER: "tftwatch"
+  PGDATABASE: "tftwatch"

@@ -1,0 +1,14 @@
+# A Service gives the pods one stable address and load-balances across them.
+# Pods come and go (new IPs each time); the Service name stays put. Anything
+# in the cluster can reach the API at http://scout, regardless of which pods exist.
+apiVersion: v1
+kind: Service
+metadata:
+  name: scout
+spec:
+  selector:
+    app: scout            # routes to every pod carrying label app=scout
+  ports:
+    - port: 80            # the Service listens on 80
+      targetPort: 8000    # and forwards to the container's 8000
+  type: ClusterIP         # internal-only for now; we add public Ingress in a later step

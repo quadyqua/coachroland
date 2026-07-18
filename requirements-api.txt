@@ -1,0 +1,5 @@
+# Minimal deps for the cloud scout service only (not the desktop client).
+fastapi
+uvicorn[standard]
+requests
+psycopg[binary]   # Postgres driver for the match cache

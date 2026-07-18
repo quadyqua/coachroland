@@ -4,14 +4,12 @@ Only read-only, official endpoints are used -> no Vanguard / ToS risk.
 Match details are immutable, so we cache them to disk forever; this keeps
 us comfortably under the dev-key limit (20 req/s, 100 req / 2 min).
 """
-import json
 import time
-import pathlib
 import urllib.parse
 
 import requests
 
-CACHE_DIR = pathlib.Path(__file__).resolve().parent.parent / ".cache" / "matches"
+from .cache import DiskMatchCache
 
 
 class RiotError(RuntimeError):
@@ -19,7 +17,8 @@ class RiotError(RuntimeError):
 
 
 class RiotClient:
-    def __init__(self, api_key: str, platform: str = "na1", region: str = "americas"):
+    def __init__(self, api_key: str, platform: str = "na1", region: str = "americas",
+                 match_cache=None):
         if not api_key:
             raise RiotError("No API key. Set RIOT_API_KEY in your .env file.")
         self.api_key = api_key
@@ -27,7 +26,10 @@ class RiotClient:
         self.region = region               # e.g. americas (account / match)
         self.session = requests.Session()
         self.session.headers.update({"X-Riot-Token": api_key})
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        # Where match data is cached. Defaults to local disk (desktop client);
+        # the cloud API service passes a PostgresMatchCache so the cache
+        # survives pod restarts.
+        self.match_cache = match_cache or DiskMatchCache()
 
     # ---- low-level -------------------------------------------------------
     def _get(self, url: str, params: dict | None = None, _tries: int = 4) -> dict:
@@ -71,11 +73,11 @@ class RiotClient:
         )
 
     def match(self, match_id: str) -> dict:
-        cache_file = CACHE_DIR / f"{match_id}.json"
-        if cache_file.exists():
-            return json.loads(cache_file.read_text(encoding="utf-8"))
+        cached = self.match_cache.get(match_id)
+        if cached is not None:
+            return cached
         data = self._get(self._regional(f"/tft/match/v1/matches/{match_id}"))
-        cache_file.write_text(json.dumps(data), encoding="utf-8")
+        self.match_cache.set(match_id, data)
         return data
 
     def ranked(self, puuid: str) -> list[dict]:

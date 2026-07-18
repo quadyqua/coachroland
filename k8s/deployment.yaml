@@ -1,0 +1,60 @@
+# A Deployment keeps N copies (replicas) of the scout container running.
+# If one crashes or you delete it, the Deployment starts a replacement — this
+# is the "self-healing" you'll watch happen.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scout
+  labels:
+    app: scout
+spec:
+  replicas: 2                    # two pods, so one can die and traffic still flows
+  selector:
+    matchLabels:
+      app: scout
+  template:
+    metadata:
+      labels:
+        app: scout               # Service finds pods by this label
+    spec:
+      containers:
+        - name: scout
+          image: tftwatch-scout:v2
+          imagePullPolicy: IfNotPresent   # unique tag per build -> cluster always picks up the new image
+          ports:
+            - containerPort: 8000
+          # Non-secret config comes from the ConfigMap (all its keys become
+          # env vars); only the two sensitive values stay as Secret refs below.
+          envFrom:
+            - configMapRef:
+                name: scout-config
+          env:
+            - name: RIOT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: riot-api
+                  key: RIOT_API_KEY
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-auth
+                  key: POSTGRES_PASSWORD
+          readinessProbe:                 # "is this pod ready for traffic yet?"
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:                  # "is this pod still alive, or should I restart it?"
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          resources:                      # requests/limits — needed later for autoscaling
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
