@@ -35,6 +35,7 @@ from . import compguide
 from . import brain
 from . import localvision
 from .ledger import Ledger
+from .scout_detect import ScoutDetector
 from .tracker import PurchaseTracker
 from .vision import (read_lobby_pil, read_board_pil, read_augments_pil, read_self_pil,
                      read_traits_pil, read_offer_pil, _crop_region, RIGHT_PANEL)
@@ -193,7 +194,7 @@ def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contes
 
 def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs, alt_name,
                   stage=None, level=None, traits=None, rivals=None, scouted=None, stale=None,
-                  hp=None, gold=None, ledger=None):
+                  hp=None, gold=None, ledger=None, last_scout=None):
     """Deterministic fallback advice (no LLM). Mirrors the brain's coverage cheaply."""
     out = []
     out += coach.level_pacing(stage, level, (my_comp or {}).get("playstyle"))
@@ -210,6 +211,15 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
     if ledger and nxt and ledger.comp_for(nxt):
         out += coach.counter_comp(nxt, traits=ledger.comp_for(nxt),
                                   carry=ledger.carry_for(nxt), is_next=True)
+    # Also surface the MOST RECENT scout even when we can't yet name whose board it was
+    # (the "who" needs the scoreboard-highlight read, still to be calibrated). Skip if it's
+    # already the named next-opponent counter above, so we don't double up.
+    if last_scout and last_scout.get("traits"):
+        owner = last_scout.get("owner")
+        if not (owner and owner == nxt and ledger and ledger.comp_for(nxt)):
+            out += coach.counter_comp(owner, traits=last_scout["traits"],
+                                      carry=(ledger.carry_for(owner) if (ledger and owner) else None),
+                                      is_next=bool(owner and owner == nxt))
     if my_comp:
         carry = my_comp.get("carry")
         has_carry = bool(my_comp.get("carries"))
@@ -250,6 +260,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
     atexit.register(purge_captures)
     coach = CoachRoland()
     ledger = Ledger()
+    scout_det = ScoutDetector()         # left-panel != your comp -> you're scouting someone
     owned_tracker = PurchaseTracker()   # infers your bought units from shop diffs (no bench read)
     my_comp, my_plan, teammate_comp = _comp_context(comp_key, partner_name, partner_comp_key)
     partner_detail = compguide.comp_detail(partner_comp_key) if partner_comp_key else None
@@ -280,6 +291,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
     last_stage = None                      # reused by the fast shop path (stage changes slowly)
     last_contested = []                    # reused by the fast shop path (deny flags)
     last_hp = None                         # your own HP -> HP-aware "roll to stabilize" advice
+    last_scout = None                      # most recent scouted opponent comp {owner,traits,stage}
 
     with mss.MSS() as sct:
         monitor = sct.monitors[1]
@@ -366,6 +378,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                         if (now - last_valid_read) >= GAME_OVER_GAP and not game_over_fired:
                             coach.reset()
                             ledger.reset()
+                            scout_det.reset()
+                            last_scout = None
                             owned_tracker.reset()
                             last_brain_recs = []
                             last_comp = compguide.comp_detail(comp_key) if comp_key else None
@@ -428,6 +442,21 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                            else read_traits_pil(full, model=TEXT_MODEL)).get("traits")
                         except Exception as e:
                             print(f"  (trait read failed: {e})")
+
+                    # SCOUT DETECTION: if the left trait panel doesn't match YOUR comp, you're
+                    # viewing an opponent's board. Two effects: (1) attribute the read to that
+                    # opponent (their comp -> counter advice), NOT to yourself; (2) don't let a
+                    # foreign panel corrupt your own comp inference/advice this frame.
+                    if traits_read:
+                        tag, _ov = scout_det.classify(traits_read, last_comp)
+                        if tag == "scout":
+                            # "who" needs the scoreboard-highlight read (calibration pending); until
+                            # then attribute to next_opponent if known, else leave unnamed.
+                            owner = data.get("next_opponent")
+                            last_scout = {"owner": owner, "traits": traits_read, "stage": stage_read}
+                            if owner:
+                                ledger.note_comp(owner, traits_read, stage=stage_read)
+                            traits_read = None   # not YOUR panel -> keep it out of your-comp logic
 
 
                     # Bench tiles are icons (recognition unreliable), so "what you own" is INFERRED
@@ -505,7 +534,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                   scouted=set(ledger.carries),
                                                   stale=set(ledger.stale_reads(stage_read)),
                                                   hp=my_hp, gold=(self_read or {}).get("gold"),
-                                                  ledger=ledger)
+                                                  ledger=ledger, last_scout=last_scout)
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here
