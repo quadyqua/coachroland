@@ -347,6 +347,11 @@ SHOP_ODDS = {
 }
 _ROLL_LEVEL = {1: 6, 2: 7, 3: 7, 4: 8, 5: 9}   # the level you generally roll at, per carry cost
 
+# Copies of EACH unit in the shared pool, by cost tier (standard TFT; varies a little per
+# set). A 5-cost pool is tiny (9), so even a 2-star is a scramble once contested; a 1-cost
+# pool (30) shrugs off light contest. Used to judge when a 3-star is realistically off.
+POOL_SIZE = {1: 30, 2: 25, 3: 18, 4: 10, 5: 9}
+
 
 def odds(level, cost):
     """% chance per shop slot of seeing a `cost`-cost unit at `level`."""

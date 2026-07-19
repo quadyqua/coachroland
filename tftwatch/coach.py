@@ -668,6 +668,33 @@ class CoachRoland:
                     f"fast where you're currently stuck. Pivot before you bleed out.", "buy")]
         return []
 
+    def pool_check(self, carry, n_rivals) -> list[dict]:
+        """Pool-size-aware contest read. A 5-cost pool is only 9, so even a 2-star is a
+        scramble once contested; a 1-cost pool (30) tolerates it. Estimated from OBSERVED
+        contesters (public) — we can't count hidden benches, so it's a pressure ESTIMATE,
+        not an exact 'copies left'. Self-scales: small pools trip at 1 rival, big pools need
+        many.
+        """
+        if not carry or not n_rivals:
+            return []
+        cost = cdragon.cost_of(carry)
+        pool = compguide.POOL_SIZE.get(cost) if cost else None
+        if not pool:
+            return []
+        est_left = max(pool - n_rivals * 4, 0)         # rough: each rival ties up ~4 copies
+        if cost <= 3:                                  # reroll targets aim for a 3-star (9 copies)
+            if est_left < 12:                          # not enough headroom to reliably 3-star
+                return [_rec(f"3-star {carry} is slipping — the pool's thin",
+                             f"{carry} is a {cost}-cost ({pool}-copy pool); with {n_rivals} other(s) on it only "
+                             f"~{est_left} are likely left, so a 3-star (needs 9) is a long shot. Lock a 2-star "
+                             f"and cap your board elsewhere, or hard-switch.", "warn")]
+        elif n_rivals >= 1:                            # 4/5-cost: tiny pool, you're 2-starring
+            return [_rec(f"{carry}'s pool is tiny and contested",
+                         f"{carry} is a {cost}-cost — only {pool} exist and {n_rivals} other(s) want it. Even a "
+                         f"2-star is a scramble: grab every copy the moment you see it, or pivot to an open carry.",
+                         "warn")]
+        return []
+
     def stabilize(self, hp, level, stage, gold=None, carry=None, early=None) -> list[dict]:
         """Concrete 'how to stop the bleeding' when you're low — the real, ordered levers a
         losing player can pull, NOT a useless 'stabilize or concede'. Fires when you're

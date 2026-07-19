@@ -207,6 +207,7 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
         is_contested = has_carry and carry.lower() in {c.lower() for c in contested}
         if has_carry:
             out += coach.trouble(carry, rivals, alt=alt_name)   # "someone's on my carry" warn
+            out += coach.pool_check(carry, len(rivals or []))   # pool-size-aware contest read
             out += coach.early_game(my_plan, stage=stage)
             out += coach.item_holder_advice(my_comp)
             out += coach.item_plan(my_comp, contested=is_contested, alt=alt_name)

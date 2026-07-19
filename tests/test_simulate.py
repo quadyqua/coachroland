@@ -95,6 +95,19 @@ def test_hard_switch_only_when_contested():
                                  comp_key="primordian_jinx", rivals=[]))
 
 
+def test_pool_check_scales_by_pool_size():
+    shop = ["Aatrox", "Leona", "Kai'Sa", "Vex", "Jinx"]
+
+    def pooled(ck, n):
+        rivals = [f"P{i}" for i in range(n)]
+        r = simulate(["Aatrox"], shop, gold=30, level=8, stage="4-2", comp_key=ck, rivals=rivals)
+        return any("pool" in a["text"].lower() for a in r["advice"])
+
+    assert pooled("mecha_sol", 1)          # tiny high-cost pool -> fires at one contester
+    assert not pooled("nova_reroll", 2)    # 30-copy 1-cost pool tolerates a couple
+    assert pooled("nova_reroll", 5)        # ...but a pile-on drains even a big pool
+
+
 def test_stabilize_gives_concrete_steps_when_bleeding():
     shop = ["Jinx", "Vex", "Akali", "Leona", "Jhin"]
 
