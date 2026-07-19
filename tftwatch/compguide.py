@@ -323,9 +323,6 @@ GODS = {
               "note": "Offerings vary by patch — check before committing."},
 }
 
-# Top Set 17 augments (17.6) — exact ranking needs live augment-stat data.
-TOP_AUGMENTS = {"Advanced Loan", "Aura Farming", "Cosmic Restart", "Epoch+", "Explosive Growth"}
-
 
 # ---- shop odds (public, deterministic) -> roll-timing math -------------------------
 # Per-shop-slot % chance of each cost tier (1..5) at a given level. Standard TFT table;

@@ -65,7 +65,9 @@ def _meta_brief() -> str:
         f"SET 17 COMPS (patch 17.6):\n{comps}\n\n"
         f"COUNTER DYNAMICS (positional/item/tempo — TFT has no comp-vs-comp matrix):\n{counters}\n\n"
         f"GODS (2 offered per game; pick offerings):\n{gods}\n\n"
-        f"TOP AUGMENTS this patch: {', '.join(sorted(compguide.TOP_AUGMENTS))}\n"
+        "AUGMENTS: no live augment win-rate data — judge each offered augment on comp fit "
+        "(emblems that point your comp), stage (econ early, combat late), and whether it "
+        "enables your carry. Do not assume a fixed top list.\n"
         "DOUBLE UP PRINCIPLES:\n  - " + "\n  - ".join(compguide.DOUBLE_UP_NOTES)
     )
 

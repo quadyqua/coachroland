@@ -165,6 +165,7 @@ def current_set_champions() -> list[dict]:
 
 _set_items: list[dict] = []
 _set_augments: list[dict] = []
+_aug_name_index: dict = {}
 
 
 def current_set_items() -> list[dict]:
@@ -193,12 +194,37 @@ def current_set_augments() -> list[dict]:
         pref = f"tft{num}"
         for it in data.get("items", []):
             api = (it.get("apiName") or "").lower()
-            if it.get("name") and it.get("icon") and "augment" in api and api.startswith(pref):
+            # set-specific (tft17_) plus generic (tft_augment_*) augments, reused every set.
+            # Old set-specific prefixes (tft9_, tft7_, …) are dead augments -> excluded.
+            current = api.startswith(pref) or api.startswith("tft_augment")
+            if it.get("name") and it.get("icon") and "augment" in api and current:
                 _set_augments.append({"name": it["name"], "api": it["apiName"],
                                       "icon_url": _tile_url(it["icon"])})
     except Exception:
         pass
     return _set_augments
+
+
+def augment_name_index() -> dict:
+    """Normalized augment name -> display name, across EVERY augment in the data dump. Used to
+    resolve an on-screen augment title to its canonical text. Set-membership is irrelevant for a
+    name resolver: if an augment is being offered it's live, and Riot re-enables old augments
+    under their original apiName (e.g. Portable Forge keeps its tft6_ prefix), so a prefix filter
+    would miss them. Prefers the base tier over '+/++' variants (the marks strip out and OCR can't
+    see them anyway)."""
+    if _aug_name_index:
+        return _aug_name_index
+    try:
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        for it in data.get("items", []):
+            name, api = it.get("name"), (it.get("apiName") or "").lower()
+            if name and "augment" in api:
+                key = _norm(name)
+                if len(key) >= 4 and len(name) < len(_aug_name_index.get(key, name + "x")):
+                    _aug_name_index[key] = name
+    except Exception:
+        pass
+    return _aug_name_index
 
 
 _trait_bps: dict = {}        # trait display name (lower) -> sorted [minUnits breakpoints]

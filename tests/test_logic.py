@@ -193,6 +193,17 @@ def test_board_from_traits_credits_comp_units():
     assert got >= 4
 
 
+def test_augment_name_index_resolves_spaceless_ocr():
+    # OCR collapses card-title spaces ("Apotheotic Forge" -> "ApotheoticForge"), so the augment
+    # index must resolve the alnum-normalized key. Regression for the reader reading nothing.
+    idx = cdragon.augment_name_index()
+    assert idx.get("apotheoticforge") == "Apotheotic Forge"   # tft17_ set-specific
+    assert idx.get("glasscannonii") == "Glass Cannon II"      # generic tft_ (cross-set), was missing
+    assert idx.get("portableforge") == "Portable Forge"       # base tier preferred over "++"
+    assert len(idx) > 400                                     # full pool, not just ~53 tft17_
+    assert len(cdragon.current_set_augments()) > 200          # generic augments now included too
+
+
 if __name__ == "__main__":
     from tftwatch import cdragon
     cdragon.ensure_loaded()                # fail loudly on a cold cache, not a misleading 18/20

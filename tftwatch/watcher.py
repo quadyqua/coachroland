@@ -209,6 +209,9 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
     last_brain = 0.0
     last_brain_recs: list = []
     last_comp = compguide.comp_detail(comp_key) if comp_key else None
+    pending_key = None                     # a DIFFERENT inferred comp awaiting confirmation
+    pending_hits = 0
+    SWITCH_CONFIRM = 3                     # inferred comp only flips after N reads agree (anti-jitter)
     hp_hist: dict = {}                     # per-player HP, to reject misread crashes
     last_valid_read = time.time()          # last time we saw a real lobby (>= 2 players)
     game_over_fired = False                # so we reset/blank only ONCE per real game-over
@@ -451,8 +454,22 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             det = (compguide.suggest_for_traits(traits_read, contested,
                                    current_key=(last_comp or {}).get("key")) if traits_read else None)
                             if det:
-                                rc, rp = _comp_dicts(det)
-                                last_comp = compguide.comp_detail(det.get("carry")) or last_comp
+                                cand_key = next((k for k, v in compguide.COMPS.items() if v is det), None)
+                                cur_key = (last_comp or {}).get("key")
+                                if last_comp is None or cand_key == cur_key:
+                                    last_comp = compguide.comp_detail(cand_key) or last_comp
+                                    pending_key, pending_hits = None, 0     # steady -> clear candidate
+                                else:
+                                    # a DIFFERENT comp this frame. Don't flip on OCR jitter (e.g. the
+                                    # anchor trait misread by 1 with several traits tied) — require it
+                                    # to win SWITCH_CONFIRM reads in a row before actually switching.
+                                    pending_hits = pending_hits + 1 if cand_key == pending_key else 1
+                                    pending_key = cand_key
+                                    if pending_hits >= SWITCH_CONFIRM:
+                                        last_comp = compguide.comp_detail(cand_key) or last_comp
+                                        pending_key, pending_hits = None, 0
+                                # advise the HELD comp (unchanged unless a switch was confirmed above)
+                                rc, rp = _comp_dicts(compguide.COMPS.get((last_comp or {}).get("key")))
                             elif last_comp and last_comp.get("key"):
                                 # no trait read this frame (combat/transition/choice screen) -> keep
                                 # advising your COMMITTED comp; don't fall back to generic "open lines"

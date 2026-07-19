@@ -337,24 +337,30 @@ AUGMENT_SLOTS = 3   # kept for signature compatibility; unused by the OCR reader
 
 
 def read_augments_pil(img: "Image.Image", crop=AUGMENT_REGION, slots=AUGMENT_SLOTS) -> dict:
-    """{augments:[name]} — offered augments read by OCR + matched to the set's augment list."""
-    aug_names = [a["name"] for a in cdragon.current_set_augments()]
-    gods = {g.lower() for g in compguide.GODS}      # a bare God name is the God screen, not an augment
+    """{augments:[name]} — offered augments read by OCR + matched to the augment name index.
+
+    OCR collapses the card titles' spaces ("Apotheotic Forge" -> "ApotheoticForge"), so match on
+    an alphanumeric-normalized key, not the raw string. The index spans every augment (not just
+    the ~53 tft17_-prefixed ones), so generic augments (Glass Cannon) and legacy-reused ones
+    (Portable Forge, still tft6_) resolve too.
+    """
+    idx = cdragon.augment_name_index()              # normalized name -> display name (all augments)
+    gods = {g.lower() for g in compguide.GODS}       # a bare God name is the God screen, not an augment
     found = []
     for b in _boxes(_crop(img, crop)):
         t = b["text"].strip()
-        if len(t) < 4 or len(t.split()) > 4:        # an augment name, not a description line
+        if len(t) < 4 or len(t.split()) > 4:         # an augment title, not a description line
             continue
         tl = t.lower()
-        if tl in gods or "@" in t or "boon" in tl:  # skip God names, God-quest boons, @template@ text
+        if tl in gods or "@" in t or "boon" in tl:   # skip God names, God-quest boons, @template@ text
             continue
-        for a in aug_names:
-            al = a.lower()
-            # the card shows the FULL augment name, so require an exact match (or the augment
-            # name contained in a slightly-longer OCR token) — never a short name inside a
-            # description line, which produced false positives on God-quest screens.
-            if (tl == al or (len(al) >= 6 and al in tl)) and a not in found:
-                found.append(a)
+        key = cdragon._norm(t)
+        name = idx.get(key)                          # exact normalized match (the common case)
+        if not name:                                 # OCR sometimes appends 1-3 stray chars
+            name = next((disp for k, disp in idx.items()
+                         if len(k) >= 6 and key.startswith(k) and len(key) - len(k) <= 3), None)
+        if name and name not in found:
+            found.append(name)
     return {"augments": found}
 
 

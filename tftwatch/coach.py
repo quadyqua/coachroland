@@ -508,8 +508,6 @@ class CoachRoland:
             al, s = a.lower(), 0
             if "emblem" in al and any(t in al for t in traits):
                 s += 3                                   # emblem that points your comp
-            if a in compguide.TOP_AUGMENTS:
-                s += 2                                   # proven strong this patch
             if stage and str(stage).startswith("2") and any(k in al for k in
                                                             ("loan", "gold", "income", "econ")):
                 s += 1                                   # econ first on 2-1
@@ -521,8 +519,8 @@ class CoachRoland:
         pick = sorted(offered, key=score, reverse=True)[0]
         return [_rec(
             f"Augment: take {pick}",
-            "Best of the three for your board. Rule of thumb: an emblem that points your comp > a "
-            "proven strong augment > econ early / combat later. (Live win-rates/placements are "
+            "Best of the three for your board. Rule of thumb: an emblem that points your comp > "
+            "econ early / combat later > filler. (Live win-rates/placements are "
             "intentionally not shown — Riot's TFT policy prohibits it; save stat review for post-game.)",
             "buy", stat=None,
             priority=ACTIVE_CHOICE, timer=30)]
