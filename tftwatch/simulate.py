@@ -20,8 +20,9 @@ from .watcher import _comp_dicts, _rules_advice
 
 
 def simulate(board, shop_names, gold=None, level=None, stage=None,
-             comp_key=None, contested=None):
-    """Return Roland's read for a hypothetical spot (same logic the live watcher runs)."""
+             comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner"):
+    """Return Roland's read for a hypothetical spot (same logic the live watcher runs).
+    Pass partner_comp_key to simulate DOUBLE UP (partner-aware shop + coaching)."""
     owned = [b.strip() for b in board if b.strip()]
     contested = [c.strip() for c in (contested or []) if c.strip()]
     shop = [{"name": n.strip(), "cost": cdragon.cost_of(n.strip())} for n in shop_names if n.strip()]
@@ -41,21 +42,29 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     my_comp, my_plan = _comp_dicts(
         compguide.find(comp.get("key") or comp.get("carry")) if comp else None)
 
-    shop_view = coach_shop(owned, shop, comp, gold, contested)
-    econ = (CoachRoland().reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage)
+    # Double Up partner (optional): partner comp detail for shop 'give' flags, and a light
+    # teammate_comp dict for the partner-aware coaching (contest-your-own-partner, cannon).
+    partner_detail = compguide.comp_detail(partner_comp_key) if partner_comp_key else None
+    teammate_comp = None
+    if partner_comp_key:
+        pcarry = (compguide.find(partner_comp_key) or {}).get("carry")
+        teammate_comp = {"name": partner_name,
+                         "carries": [pcarry] if pcarry and pcarry.lower() != "flex" else []}
+
+    coach = CoachRoland()
+    shop_view = coach.shop_plan(shop, comp, gold=gold, owned=owned, contested=contested,
+                                partner_comp=partner_detail, partner_name=partner_name)
+    econ = (coach.reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage)
             if gold is not None else [])
-    advice = _rules_advice(CoachRoland(), my_comp, my_plan, None,
+    advice = _rules_advice(coach, my_comp, my_plan, teammate_comp,
                            {"players": [], "next_opponent": None},
                            contested, [], "an open line",
                            stage=stage, level=level, traits=traits)
     unresolved = [n["name"] for n in shop if n["cost"] is None]
     return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
             "econ": econ, "advice": advice, "unresolved": unresolved,
-            "stage": stage, "level": level, "gold": gold}
-
-
-def coach_shop(owned, shop, comp, gold, contested):
-    return CoachRoland().shop_plan(shop, comp, gold=gold, owned=owned, contested=contested)
+            "stage": stage, "level": level, "gold": gold,
+            "partner": (partner_detail["name"] if partner_detail else None)}
 
 
 def _fmt(res) -> str:
@@ -67,13 +76,17 @@ def _fmt(res) -> str:
     out.append(f"Board: {', '.join(res['owned']) or '(empty)'}" + (f"   |   {meta}" if meta else ""))
     out.append("Active traits: " + (", ".join(f"{t['name']} {t['count']}" for t in res["traits"]) or "none"))
     c = res["comp"]
-    out.append("Building: " + (f"{c['name']} (carry {c.get('carry')})" if c else "no comp yet"))
+    building = (f"{c['name']} (carry {c.get('carry')})" if c else "no comp yet")
+    if res.get("partner"):
+        building += f"   |   Double Up partner: {res['partner']}"
+    out.append("Building: " + building)
     out.append("\nShop:")
     for s in res["shop"]:
         act = (s["action"] or "skip").upper()
-        why = s.get("tostar") or {"carry": "your carry", "core": "comp core",
-                                  "body": "frontline body", "deny": "contested — deny",
-                                  "partner": "for partner"}.get(s.get("role"), "")
+        why = ((s.get("tostar") or {"carry": "your carry", "core": "comp core",
+                                    "body": "frontline body", "deny": "contested — deny",
+                                    "partner": "for partner"}.get(s.get("role"), ""))
+               if s["action"] else "")   # no reason tag on a skipped (dim) slot
         cost = f"{s['cost']}g" if s["cost"] is not None else "?"
         out.append(f"  {s['name']:10} {cost:4} {act:5} {('· ' + why) if why else ''}")
     if res["econ"]:
@@ -101,9 +114,12 @@ def main() -> None:
     p.add_argument("--stage", default=None, help="e.g. 4-2")
     p.add_argument("--comp", default=None, help="pin a comp (compguide key or carry); else auto-suggested")
     p.add_argument("--contested", default="", help="comma-separated lobby-contested carries (for deny flags)")
+    p.add_argument("--partner-comp", default=None, help="DOUBLE UP: partner's comp (key or carry)")
+    p.add_argument("--partner", default="Partner", help="Double Up partner's name")
     a = p.parse_args()
     res = simulate(a.board.split(","), a.shop.split(","), gold=a.gold, level=a.level,
-                   stage=a.stage, comp_key=a.comp, contested=a.contested.split(","))
+                   stage=a.stage, comp_key=a.comp, contested=a.contested.split(","),
+                   partner_comp_key=a.partner_comp, partner_name=a.partner)
     print("\nCoach Roland — scenario\n" + "=" * 40)
     print(_fmt(res))
 

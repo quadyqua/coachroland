@@ -36,6 +36,21 @@ def test_contested_unit_in_shop_flags_deny():
     assert acts["Jinx"] == "buy"                              # your own carry, never deny
 
 
+def test_early_game_advice_suppressed_in_late_game():
+    board, shop = ["Twisted Fate", "Jax"], ["Twisted Fate", "Caitlyn", "Aatrox", "Corki", "Diana"]
+    early = simulate(board, shop, gold=8, level=4, stage="2-1", comp_key="fateweaver_tf")
+    late = simulate(board, shop, gold=40, level=9, stage="5-2", comp_key="fateweaver_tf")
+    assert any(a["text"].startswith("EARLY") for a in early["advice"])       # shown in the early game
+    assert not any(a["text"].startswith("EARLY") for a in late["advice"])    # stale by stage 5 -> suppressed
+
+
+def test_carry_item_builds_have_no_duplicates():
+    from tftwatch import compguide
+    for key, c in compguide.COMPS.items():
+        items = c.get("carry_items") or []
+        assert len(items) == len(set(items)), f"{key} has duplicate items: {items}"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

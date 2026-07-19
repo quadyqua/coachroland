@@ -327,6 +327,22 @@ GODS = {
 TOP_AUGMENTS = {"Advanced Loan", "Aura Farming", "Cosmic Restart", "Epoch+", "Explosive Growth"}
 
 
+# Some hand-entered carry_items lists have copy-paste duplicates; a carry's build should
+# show each item once. Dedupe in place (order-preserving) so every consumer gets clean data.
+def _dedup_keep_order(seq):
+    seen, out = set(), []
+    for x in seq:
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
+
+
+for _c in COMPS.values():
+    if _c.get("carry_items"):
+        _c["carry_items"] = _dedup_keep_order(_c["carry_items"])
+
+
 def find(carry_or_key: str):
     """Look up a comp by key or by carry name (case-insensitive)."""
     if not carry_or_key:

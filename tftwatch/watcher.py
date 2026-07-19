@@ -202,7 +202,7 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
         has_carry = bool(my_comp.get("carries"))
         is_contested = has_carry and carry.lower() in {c.lower() for c in contested}
         if has_carry:
-            out += coach.early_game(my_plan)
+            out += coach.early_game(my_plan, stage=stage)
             out += coach.item_holder_advice(my_comp)
             out += coach.item_plan(my_comp, contested=is_contested, alt=alt_name)
         if teammate_comp:

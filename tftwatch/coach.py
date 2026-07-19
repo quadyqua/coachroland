@@ -237,12 +237,21 @@ class CoachRoland:
         return out
 
     # ---- early-game bridge + buy priority ------------------------------------
-    def early_game(self, plan: dict) -> list[dict]:
+    def early_game(self, plan: dict, stage=None) -> list[dict]:
         """plan = {name, carry, early:[holders], level_plan} -> an IMPORTANT buy rec.
 
         Solves "I know my level-8 comp but not what to play before it." The holder
-        list comes from comp-guide data (a meta source).
+        list comes from comp-guide data (a meta source). Suppressed from stage 4 on:
+        by then you're on your real board, so early-bridge advice is stale.
         """
+        act = None
+        if stage:
+            try:
+                act = int(str(stage).split("-")[0])
+            except Exception:
+                act = None
+        if act is not None and act >= 4:
+            return []
         early = (plan or {}).get("early_units") or (plan or {}).get("early")
         if not early:
             return []
