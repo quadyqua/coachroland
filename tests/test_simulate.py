@@ -81,6 +81,20 @@ def test_roll_timing_uses_shop_odds():
     assert "stop leveling" in econ("nova_reroll", 8, 50)  # 1-cost over-leveled -> odds dropping
 
 
+def test_hard_switch_only_when_contested():
+    shop = ["Jinx", "Vex", "Akali", "Leona", "Jhin"]
+
+    def switched(res):
+        return any("hard-switch" in a["text"].lower() for a in res["advice"])
+
+    # carry contested (2 rivals) + at a level to hit an open line -> suggest a pivot
+    assert switched(simulate(["Jinx"], shop, gold=40, level=7, stage="4-2",
+                             comp_key="primordian_jinx", rivals=["A", "B"]))
+    # your line is uncontested -> never suggest abandoning it
+    assert not switched(simulate(["Jinx"], shop, gold=40, level=7, stage="4-2",
+                                 comp_key="primordian_jinx", rivals=[]))
+
+
 def test_carry_item_builds_have_no_duplicates():
     from tftwatch import compguide
     for key, c in compguide.COMPS.items():

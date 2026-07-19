@@ -628,6 +628,35 @@ class CoachRoland:
                          f"rounds so their comp feeds into contest + counter advice.", "info")]
         return []
 
+    def hard_switch(self, carry, contested, level, avoid=None) -> list[dict]:
+        """The escape hatch. When YOUR carry is contested (starving you), find the best OPEN
+        line whose carry you can actually HIT at your current level — combining contest
+        (open_comps) with shop odds — and suggest a hard pivot. Quiet if your line isn't
+        contested, or if nothing open is realistically hittable. `avoid` excludes lines you
+        must not switch into (e.g. your Double Up partner's carry — never contest them).
+        """
+        if not carry or not level:
+            return []
+        if carry.lower() not in {c.lower() for c in (contested or [])}:
+            return []                               # your line isn't contested -> don't suggest switching
+        avoid_set = {carry.lower()} | {a.lower() for a in (avoid or []) if a}
+        for c in compguide.open_comps(contested):   # tier-sorted -> first hittable line is the best
+            oc = c.get("carry")
+            if not oc or oc.lower() in avoid_set:
+                continue
+            cost = cdragon.cost_of(oc)
+            if not cost:
+                continue
+            o = compguide.odds(level, cost)
+            hittable = level >= compguide.roll_level_for(cost) or cost <= 2   # at roll level, or a rerollable low-cost
+            if hittable and o > 0:
+                return [_rec(
+                    f"Hard-switch to {c['name']} — you can hit it now",
+                    f"{carry} is contested and starving you, but {c['name']} is WIDE OPEN (nobody's on {oc}). "
+                    f"Its {cost}-cost {oc} shows ~{o}% per shop slot at your level {level}, so you'll 2-star it "
+                    f"fast where you're currently stuck. Pivot before you bleed out.", "buy")]
+        return []
+
     def comp_progress(self, comp, owned, traits=None) -> list[dict]:
         """Shopping list: which of your comp's core units you have vs still need.
 

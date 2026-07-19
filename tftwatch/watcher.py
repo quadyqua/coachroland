@@ -212,6 +212,8 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
         else:
             out += coach.contested_pivot(my_comp, data, augments=augs, alt_comp=alt_name)
         out += coach.recommend(contested, my_intended=carry)
+        out += coach.hard_switch(carry, contested, level,   # odds-aware pivot when contested
+                                 avoid=(teammate_comp or {}).get("carries"))
     else:
         if teammate_comp:   # Double Up with no committed comp -> still coach the partnership
             out += coach.doubleup(my_comp or {}, teammate_comp, data, augments=augs, alt_comp=alt_name)
