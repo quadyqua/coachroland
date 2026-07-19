@@ -1,0 +1,5 @@
+# Windows launchers must stay CRLF so they run correctly when the repo is
+# cloned or downloaded as a ZIP (GitHub applies these rules to the archive).
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
