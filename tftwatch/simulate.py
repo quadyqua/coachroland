@@ -61,7 +61,8 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     coach = CoachRoland()
     shop_view = coach.shop_plan(shop, comp, gold=gold, owned=owned, contested=contested,
                                 partner_comp=partner_detail, partner_name=partner_name)
-    econ = (coach.reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage, hp=hp)
+    econ = (coach.reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage, hp=hp,
+                                carry=(comp or {}).get("carry"))
             if gold is not None else [])
     advice = _rules_advice(coach, my_comp, my_plan, teammate_comp,
                            {"players": [], "next_opponent": None},

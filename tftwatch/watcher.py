@@ -308,7 +308,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                     contested=last_contested)
                             secon = coach.reroll_advice(sr.get("gold"), sr.get("level"),
                                                         (last_comp or {}).get("playstyle"),
-                                                        stage=last_stage, hp=last_hp)
+                                                        stage=last_stage, hp=last_hp,
+                                                        carry=(last_comp or {}).get("carry"))
                             if on_update:
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "shop",
                                            "shop": sview, "econ": (secon[0] if secon else None),
@@ -513,7 +514,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             print(f"  (item read failed: {e})")
                     econ = (coach.reroll_advice(self_read.get("gold"), self_read.get("level"),
                                                 (last_comp or {}).get("playstyle"), stage=stage_read,
-                                                hp=my_hp)
+                                                hp=my_hp, carry=(last_comp or {}).get("carry"))
                             if self_read else [])
                     stamp = time.strftime('%H:%M:%S')
                     if on_update:

@@ -70,6 +70,17 @@ def test_single_rival_warns_multi_defers():
     assert has(two, "avoid forcing")                                                 # 2+ -> multi danger fires
 
 
+def test_roll_timing_uses_shop_odds():
+    def econ(ck, lvl, gold):
+        r = simulate(["Aatrox"], ["Aatrox", "Leona", "Kai'Sa", "Vex", "Jinx"],
+                     gold=gold, level=lvl, stage="4-2", comp_key=ck)
+        return r["econ"][0]["text"].lower() if r["econ"] else ""
+
+    assert "level to 8" in econ("mecha_sol", 6, 40)     # 4-cost, too low -> level up first
+    assert "roll now" in econ("mecha_sol", 8, 55)       # 4-cost, at level + gold -> roll
+    assert "stop leveling" in econ("nova_reroll", 8, 50)  # 1-cost over-leveled -> odds dropping
+
+
 def test_carry_item_builds_have_no_duplicates():
     from tftwatch import compguide
     for key, c in compguide.COMPS.items():

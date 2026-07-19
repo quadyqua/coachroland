@@ -327,6 +327,40 @@ GODS = {
 TOP_AUGMENTS = {"Advanced Loan", "Aura Farming", "Cosmic Restart", "Epoch+", "Explosive Growth"}
 
 
+# ---- shop odds (public, deterministic) -> roll-timing math -------------------------
+# Per-shop-slot % chance of each cost tier (1..5) at a given level. Standard TFT table;
+# exact numbers drift slightly per set, but the SHAPE is stable — low levels favor cheap
+# units, high levels favor expensive ones. Used to tell you the right level to roll for
+# your carry, and when you're leveling PAST its odds.
+SHOP_ODDS = {
+    1:  (100, 0, 0, 0, 0),
+    2:  (100, 0, 0, 0, 0),
+    3:  (75, 25, 0, 0, 0),
+    4:  (55, 30, 15, 0, 0),
+    5:  (45, 33, 20, 2, 0),
+    6:  (30, 40, 25, 5, 0),
+    7:  (19, 30, 35, 15, 1),
+    8:  (18, 25, 32, 22, 3),
+    9:  (10, 20, 25, 35, 10),
+    10: (5, 10, 20, 40, 25),
+    11: (1, 2, 12, 50, 35),
+}
+_ROLL_LEVEL = {1: 6, 2: 7, 3: 7, 4: 8, 5: 9}   # the level you generally roll at, per carry cost
+
+
+def odds(level, cost):
+    """% chance per shop slot of seeing a `cost`-cost unit at `level`."""
+    if not level or not cost or not (1 <= cost <= 5):
+        return 0
+    row = SHOP_ODDS.get(max(1, min(int(level), 11)))
+    return row[cost - 1] if row else 0
+
+
+def roll_level_for(cost):
+    """The level you generally roll at for a carry of this cost."""
+    return _ROLL_LEVEL.get(cost, 8)
+
+
 # Some hand-entered carry_items lists have copy-paste duplicates; a carry's build should
 # show each item once. Dedupe in place (order-preserving) so every consumer gets clean data.
 def _dedup_keep_order(seq):

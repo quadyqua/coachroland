@@ -510,7 +510,7 @@ class CoachRoland:
                     v["action"] = "lock" if v["for"] == "you" else None
         return view
 
-    def reroll_advice(self, gold, level, playstyle, stage=None, hp=None) -> list[dict]:
+    def reroll_advice(self, gold, level, playstyle, stage=None, hp=None, carry=None) -> list[dict]:
         """When to reroll vs level vs save — from gold + level + playstyle, tuned by stage.
 
         HP overrides everything: if you're about to die, interest is worthless — roll it
@@ -530,6 +530,30 @@ class CoachRoland:
             return [_rec("Low HP (%d) — play your strongest board" % hp,
                          f"Only {gold} gold, so you can't roll much. Field your strongest units, position "
                          f"carefully, and scrap for the win this round.", "warn")]
+        # Shop-odds-aware roll timing: when we know your carry's cost, the right level to roll
+        # and whether you're leveling past its odds is pure math — so use it instead of the
+        # generic advice below. (Odds vary slightly per set; the level thresholds are stable.)
+        cost = cdragon.cost_of(carry) if carry else None
+        if cost and level:
+            target = compguide.roll_level_for(cost)
+            o_now, o_tgt = compguide.odds(level, cost), compguide.odds(target, cost)
+            if level < target:
+                return [_rec(f"Level to {target} before you roll",
+                             f"{carry} is a {cost}-cost — at level {level} it's only ~{o_now}% per shop slot vs "
+                             f"~{o_tgt}% at level {target}. Buy XP to {target} first; rolling now mostly misses.",
+                             "buy")]
+            if cost <= 3 and level > target:
+                return [_rec(f"Stop leveling — {carry} odds are dropping",
+                             f"{carry} ({cost}-cost) peaks around level {target} (~{o_tgt}% per slot); at level "
+                             f"{level} it's only ~{o_now}%. Roll here to hit it — don't level further.", "warn")]
+            if gold >= 50:
+                return [_rec(f"Roll now — you're at level {level} for {carry}",
+                             f"You're at the level to hit your {cost}-cost {carry} (~{o_now}% per slot) with "
+                             f"{gold} gold. Roll down to your floor to find copies; don't sit on gold past your spike.",
+                             "buy")]
+            return [_rec(f"Build to ~50 gold, then roll here for {carry}",
+                         f"You're at the right level ({level}) for a {cost}-cost carry — get to ~50 gold, then roll "
+                         f"down. Don't level past this.", "info")]
         act = None
         if stage:
             try:
