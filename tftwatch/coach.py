@@ -668,6 +668,34 @@ class CoachRoland:
                     f"fast where you're currently stuck. Pivot before you bleed out.", "buy")]
         return []
 
+    def stabilize(self, hp, level, stage, gold=None, carry=None, early=None) -> list[dict]:
+        """Concrete 'how to stop the bleeding' when you're low — the real, ordered levers a
+        losing player can pull, NOT a useless 'stabilize or concede'. Fires when you're
+        actually bleeding (<=40 HP)."""
+        if hp is None or hp > 40:
+            return []
+        try:
+            act = int(str(stage).split("-")[0]) if stage else None
+        except Exception:
+            act = None
+        pace = {2: 5, 3: 6, 4: 7, 5: 8, 6: 9, 7: 9}.get(act)   # rough level you should be at
+
+        steps = []
+        if carry:                                              # free wins first: items + board + position
+            steps.append(f"slam your item components onto {carry} now — a slammed item that wins THIS fight "
+                         f"beats holding for the perfect build")
+        board = ", ".join((early or [])[:5])
+        steps.append(f"field your STRONGEST board{f' ({board})' if board else ''}, tank in front and "
+                     f"{carry or 'your carry'} in a back corner — a lot of losses are just bad positioning")
+        if level and pace and level < pace:                   # board size when short-handed
+            steps.append(f"buy XP toward level {pace} — you're short-handed, and a bigger, higher-tier board "
+                         f"is the fastest way to start winning fights again")
+        if gold and gold >= 20:                               # then spend gold to upgrade
+            steps.append(f"roll your {gold}g to 2-star your units — don't hoard interest while you're dying")
+
+        body = "Stop the bleeding, in order: " + "; ".join(f"({i + 1}) {s}" for i, s in enumerate(steps)) + "."
+        return [_rec(f"You're bleeding at {hp} HP — here's how to actually stabilize", body, "danger")]
+
     def comp_progress(self, comp, owned, traits=None) -> list[dict]:
         """Shopping list: which of your comp's core units you have vs still need.
 

@@ -67,7 +67,8 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     advice = _rules_advice(coach, my_comp, my_plan, teammate_comp,
                            {"players": [], "next_opponent": None},
                            contested, [], "an open line",
-                           stage=stage, level=level, traits=traits, rivals=rivals)
+                           stage=stage, level=level, traits=traits, rivals=rivals,
+                           hp=hp, gold=gold)
     unresolved = [n["name"] for n in shop if n["cost"] is None]
     return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
             "econ": econ, "advice": advice, "unresolved": unresolved,

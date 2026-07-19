@@ -95,6 +95,23 @@ def test_hard_switch_only_when_contested():
                                  comp_key="primordian_jinx", rivals=[]))
 
 
+def test_stabilize_gives_concrete_steps_when_bleeding():
+    shop = ["Jinx", "Vex", "Akali", "Leona", "Jhin"]
+
+    def why(hp, lvl, gold):
+        r = simulate(["Jinx", "Rek'Sai"], shop, gold=gold, level=lvl, stage="5-2",
+                     comp_key="primordian_jinx", hp=hp)
+        s = [a for a in r["advice"] if "stabilize" in a["text"].lower()]
+        return s[0]["why"].lower() if s else ""
+
+    bleeding = why(20, 6, 30)
+    assert "slam" in bleeding and "positioning" in bleeding   # free wins: items + position
+    assert "level 8" in bleeding and "roll" in bleeding       # under-leveled + gold -> XP then roll
+    onlevel_nogold = why(24, 8, 5)
+    assert "buy xp" not in onlevel_nogold and "roll" not in onlevel_nogold   # nothing to spend
+    assert why(72, 8, 40) == ""                                # healthy -> silent
+
+
 def test_carry_item_builds_have_no_duplicates():
     from tftwatch import compguide
     for key, c in compguide.COMPS.items():
