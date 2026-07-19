@@ -192,11 +192,12 @@ def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contes
 
 
 def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs, alt_name,
-                  stage=None, level=None, traits=None, rivals=None):
+                  stage=None, level=None, traits=None, rivals=None, scouted=None):
     """Deterministic fallback advice (no LLM). Mirrors the brain's coverage cheaply."""
     out = []
     out += coach.level_pacing(stage, level, (my_comp or {}).get("playstyle"))
     out += coach.trait_advice(traits)
+    out += coach.scout_prompt(data.get("players"), scouted, data.get("next_opponent"))
     if my_comp:
         carry = my_comp.get("carry")
         has_carry = bool(my_comp.get("carries"))
@@ -485,7 +486,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                   data, contested, augs, alt_name,
                                                   stage=stage_read, level=(self_read or {}).get("level"),
                                                   traits=traits_read,
-                                                  rivals=ledger.players_on((rc or {}).get("carry")))
+                                                  rivals=ledger.players_on((rc or {}).get("carry")),
+                                                  scouted=set(ledger.carries))
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here

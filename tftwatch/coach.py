@@ -600,6 +600,34 @@ class CoachRoland:
             f"if the pool dries up (contested, or someone's holding your pieces), you'll both bottom out. "
             f"Stay ready to pivot to {alt}, or concede {carry} to them.", "warn")]
 
+    def scout_prompt(self, players, known=None, next_opponent=None) -> list[dict]:
+        """Nudge you to scout an opponent you have NO read on — prioritizing who you fight
+        next. You do the scouting (click their portrait); we just flag who's worth a look,
+        so Coach can factor their comp into contest + counters. Self-resolves once seen.
+        """
+        players = players or []
+        known = {k.lower() for k in (known or [])}
+
+        def unknown(p):
+            n = p.get("name")
+            return (bool(n) and not p.get("is_self") and not p.get("is_partner")
+                    and n.lower() not in known and not p.get("unit"))
+
+        if next_opponent:                              # you fight them THIS round -> highest value
+            for p in players:
+                if p.get("name") == next_opponent and unknown(p):
+                    return [_rec(f"Scout {next_opponent} now — you fight them next",
+                                 f"No read on {next_opponent}'s comp and they're your next opponent. Click their "
+                                 f"portrait to see their board — knowing their carry lets Coach counter-position "
+                                 f"you and flag if they contest your line.", "warn")]
+        unk = [p for p in players if unknown(p)]
+        if unk:                                        # otherwise the biggest blind spot
+            top = max(unk, key=lambda p: p.get("hp") or 0)
+            return [_rec(f"Scout {top['name']} when you get a chance",
+                         f"No read on {top['name']} yet ({top.get('hp', '?')} HP). Peek at their board between "
+                         f"rounds so their comp feeds into contest + counter advice.", "info")]
+        return []
+
     def comp_progress(self, comp, owned, traits=None) -> list[dict]:
         """Shopping list: which of your comp's core units you have vs still need.
 
