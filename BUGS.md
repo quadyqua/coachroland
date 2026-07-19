@@ -6,6 +6,13 @@ and the dashboard `/state`). Newest first.
 
 ## Fixed
 
+- **Cold-cache test flake (false green).** On a fresh cache/clone/set-rotation the 25 MB CDragon
+  blob downloads mid-run, so cost/trait lookups returned empty for the first calls and the suite
+  reported a misleading partial pass (e.g. 18/20) that only went green once the cache warmed — so
+  "locked by tests" wasn't trustworthy right after a cache wipe. Now `cdragon.ensure_loaded()`
+  forces the data up front and raises loudly if it's genuinely unavailable; called from
+  `tests/conftest.py` (pytest) and each standalone runner's `__main__`. Also `champ_traits()` now
+  returns a copy, not its internal cached list (removes a latent cache-poisoning trap).
 - **Comp database validated against CDragon.** A full audit of all 26 comps found and fixed
   15 with issues: invented traits (Summon/Invoker/Sorcerer/Sentinel/Summoner/Mystic), wrong
   item names (Leviathan→Nashor's Tooth, Madred's Bloodrazor→Giant Slayer, Power Gauntlet,

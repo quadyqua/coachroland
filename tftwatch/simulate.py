@@ -17,7 +17,7 @@ from collections import Counter
 from . import cdragon, compguide
 from .coach import CoachRoland
 from .ledger import Ledger
-from .watcher import _comp_dicts, _rules_advice
+from .coaching import _comp_dicts, _rules_advice   # capture-free: no mss/watcher import
 
 
 def _traits_of(units):

@@ -86,6 +86,22 @@ _item_components: dict = {}        # completed item name (lower) -> [component d
 _champ_cost_by_name: dict = {}     # champion display name (lower) -> cost (1-5)
 
 
+def ensure_loaded() -> None:
+    """Force the CDragon data to load NOW and raise loudly if it isn't actually available.
+
+    Runtime code degrades silently to humanize() when offline (by design). Tests must NOT:
+    a cold cache that downloads mid-run makes cost/trait lookups return empty for the first
+    few calls, so a suite can report a misleading 18/20 that "passes" once the cache warms.
+    Call this up front (see tests/conftest.py) so the run either has real data or fails with
+    a clear message instead of flaky, half-degraded results."""
+    _load()
+    if not current_roster() or not _champ_cost_by_name:
+        raise RuntimeError(
+            "CDragon static data unavailable — champion costs/traits are empty. "
+            "This happens offline with no cache. Run once with a network connection to "
+            f"populate {DATA_FILE}, then re-run.")
+
+
 def cost_of(name: str):
     """Gold cost of a champion by display name (1-5), or None if unknown."""
     _load()
@@ -248,13 +264,13 @@ def champ_traits(name: str) -> list:
             pass
     key = (name or "").lower()
     if key in _champ_traits:
-        return _champ_traits[key]
+        return list(_champ_traits[key])    # copy: never hand out the cached list (mutation-safe)
     kn = _norm(name)                       # fuzzy: "Nunu" -> "Nunu & Willump"
     if len(kn) >= 4:
         for k, v in _champ_traits.items():
             kk = _norm(k)
             if kn == kk or kn in kk or kk in kn:
-                return v
+                return list(v)
     return []
 
 

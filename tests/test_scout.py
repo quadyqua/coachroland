@@ -101,6 +101,8 @@ def test_counter_comp_quiet_without_data():
 
 
 if __name__ == "__main__":
+    from tftwatch import cdragon
+    cdragon.ensure_loaded()                # fail loudly on a cold cache, not a misleading 18/20
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
     for t in tests:
