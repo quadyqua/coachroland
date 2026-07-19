@@ -59,13 +59,43 @@ The application code for the service:
 
 ## Run it locally
 
-**Prerequisites:** Docker Desktop with Kubernetes enabled, and the ingress-nginx controller:
+### Prerequisites — install Docker + Kubernetes from scratch (Windows 10/11)
 
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
+**1. Enable WSL2** (Docker's backend). In an **Administrator** PowerShell:
+```powershell
+wsl --install
+```
+Reboot. If it fails with *"Catastrophic failure"*, enable the two features manually instead —
+in Admin PowerShell, then reboot:
+```powershell
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
 ```
 
-**Build, configure, deploy:**
+**2. Install Docker Desktop** — bundles Docker, `kubectl`, and a single-node Kubernetes:
+```powershell
+winget install -e --id Docker.DockerDesktop
+```
+(or download from [docker.com](https://www.docker.com/products/docker-desktop/)). Launch it and
+let first-time setup finish — it auto-uses the WSL2 backend.
+
+**3. Enable Kubernetes:** Docker Desktop → **Settings → Kubernetes → check "Enable Kubernetes" →
+Apply & Restart.** Wait for the status dot to go green.
+
+**4. Verify:**
+```powershell
+docker version
+kubectl get nodes          # one node, STATUS = Ready
+```
+
+**5. Install the ingress controller** (routes `scout.localhost` → the service):
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
+kubectl wait --namespace ingress-nginx --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller --timeout=180s
+```
+
+### Build, configure, deploy
 
 ```bash
 # 1. Build the image (unique tag per build — see "mutable tags" below)

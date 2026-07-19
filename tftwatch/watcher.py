@@ -261,6 +261,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
     last_shop_sig = None                   # fast shop path: reroll change-detection
     last_shop_read = 0.0
     last_stage = None                      # reused by the fast shop path (stage changes slowly)
+    last_contested = []                    # reused by the fast shop path (deny flags)
 
     with mss.MSS() as sct:
         monitor = sct.monitors[1]
@@ -301,7 +302,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             owned = list(owned_tracker.owned()) or None
                             sview = coach.shop_plan(sr.get("shop"), last_comp, sr.get("gold"),
                                                     partner_comp=partner_detail,
-                                                    partner_name=partner_name, owned=owned)
+                                                    partner_name=partner_name, owned=owned,
+                                                    contested=last_contested)
                             secon = coach.reroll_advice(sr.get("gold"), sr.get("level"),
                                                         (last_comp or {}).get("playstyle"),
                                                         stage=last_stage)
@@ -371,6 +373,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                         if p.get("unit") and p.get("name"):
                             ledger.note_carry(p["name"], p["unit"])
                     contested = ledger.contested_carries()   # accumulated across the game
+                    last_contested = contested                # reused by the fast shop path (deny flags)
                     open_list = compguide.open_comps(contested)
                     alt_name = open_list[0]["name"] if open_list else "an open line"
 
@@ -491,7 +494,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
 
                     shop_view = (coach.shop_plan(self_read.get("shop"), last_comp,
                                                  self_read.get("gold"), partner_comp=partner_detail,
-                                                 partner_name=partner_name, owned=owned_units)
+                                                 partner_name=partner_name, owned=owned_units,
+                                                 contested=contested)
                                  if self_read else [])
                     item_view = []
                     if items and last_comp:

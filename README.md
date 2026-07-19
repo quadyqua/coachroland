@@ -19,18 +19,63 @@ then advises in a separate window — it never automates input, never reads game
 and never draws an in-game overlay. The Riot-API scouting is fully read-only. Every
 decision stays yours to make.
 
-## Setup
+## Getting started — from scratch
 
-```bash
-cd TFTwatch
+> **Heads-up:** the **Coach app you run to play needs only Python — no Docker, no
+> Kubernetes.** Docker/Kubernetes is *only* for the separate, optional **Cloud Scout API**
+> (a DevOps demo — see [k8s/README.md](k8s/README.md)). If you just want to use the coach,
+> do **Part 1** and stop.
+
+### Part 1 — the Coach Roland app (what you run to play)
+
+**1. Install the prerequisites (Windows 10/11):**
+- **Python 3.12+** — from [python.org](https://www.python.org/downloads/). On the first
+  installer screen, tick **"Add python.exe to PATH"**. Verify in a new terminal: `python --version`.
+- **Git** — from [git-scm.com](https://git-scm.com/download/win). Verify: `git --version`.
+
+**2. Get the code and install dependencies:**
+```powershell
+git clone https://github.com/quadyqua/coachroland.git
+cd coachroland
 python -m venv .venv
-.venv\Scripts\Activate.ps1         # PowerShell  (bash: source .venv/Scripts/activate)
+.\.venv\Scripts\Activate.ps1          # PowerShell   (Git Bash: source .venv/Scripts/activate)
 pip install -r requirements.txt
 ```
 
-No keys are needed for the **free live coach**. For scouting you need a Riot key, and
-for the optional `--brain` an OpenAI key — put either in `.env` (`copy .env.example .env`).
-A free Riot **Development** key (https://developer.riotgames.com) works; it expires every 24h.
+**3. (Optional) GPU acceleration** — any DirectX 12 GPU (NVIDIA/AMD/Intel) makes the screen
+readers ~4× faster. The app auto-detects it and falls back to CPU if absent:
+```powershell
+pip uninstall -y onnxruntime
+pip install onnxruntime-directml
+```
+
+**4. (Optional) API keys** — the **live coach needs no keys**. You only need them for:
+- **Scouting / post-game review** → a Riot key: grab a free **Development** key at
+  [developer.riotgames.com](https://developer.riotgames.com) (expires every 24h).
+- **`--brain`** (LLM reasoning) → an OpenAI key.
+
+  Put either in a `.env` file: `copy .env.example .env`, then edit it.
+
+**5. One game setting:** in TFT, set **Settings → Video → Window Mode → Borderless**. The
+reader can't capture a true-fullscreen game.
+
+**6. Run it:**
+```powershell
+python -m tftwatch.dashboard --shop --offers --items --augments
+```
+Open **http://127.0.0.1:8765** in a browser and drag it to your second monitor. Just play —
+it reads your screen and coaches on its own. Preview the UI with no game via `--demo`.
+
+**7. Verify the install** (no game needed — runs the reader/logic tests):
+```powershell
+python tests/test_logic.py
+```
+
+### Part 2 — the Cloud Scout API (optional; this is the Docker + Kubernetes part)
+
+A containerized version of the scout, deployed to Kubernetes. **Not needed to use the coach.**
+Full from-scratch steps — installing **WSL2**, **Docker Desktop**, enabling **Kubernetes**, then
+build + deploy — are in **[k8s/README.md](k8s/README.md)**.
 
 ## Live coach
 

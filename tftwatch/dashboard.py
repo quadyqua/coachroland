@@ -255,6 +255,9 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .slot.give{background:#2c2731;border:2px solid var(--blue);}
 .slot.give .sn{color:#d8bcd6;font-weight:700;}
 .slot.give .sc{color:#bb9bb0;}
+.slot.deny{background:#2e2428;border:2px solid var(--danger);}
+.slot.deny .sn{color:#e8b6ba;font-weight:700;}
+.slot.deny .sc{color:var(--danger);}
 .shopmeta{color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500;}
 .econ{margin-top:11px;background:#26262d;border:1px solid #3a3a44;border-radius:10px;padding:10px 12px;font-size:13px;}
 .econ b{color:#d8bcd6;}
@@ -345,11 +348,13 @@ function renderShop(s){
   document.getElementById("shopmeta").textContent=
     (s.stage?'· stage '+s.stage+'  ':'')+(s.gold!=null?'· '+s.gold+'g':'')+(s.level!=null?'  · lvl '+s.level:'');
   document.getElementById("shop").innerHTML = slots.length ? slots.map(function(sl){
-    var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':'slot dim'));
+    var cls=sl.action==='buy'?'slot buy':(sl.action==='lock'?'slot lock':(sl.action==='give'?'slot give':(sl.action==='deny'?'slot deny':'slot dim')));
     var roleTxt={carry:'your carry',core:'comp core',body:'frontline body'}[sl.role]||'';
     var why=sl.tostar||roleTxt||'buy';   // WHY it's a buy: pair progress, or its role in your comp
     var tag=sl.action==='buy'?(' · '+why)
-      :(sl.action==='lock'?(' · LOCK'+(roleTxt?' ('+roleTxt+')':'')):(sl.action==='give'?' · → '+(sl.partner||'mate'):''));
+      :(sl.action==='lock'?(' · LOCK'+(roleTxt?' ('+roleTxt+')':''))
+      :(sl.action==='give'?' · → '+(sl.partner||'mate')
+      :(sl.action==='deny'?' · DENY — contested':'')));
     return '<div class="'+cls+'"><div class="sn">'+(sl.name||'—')+(sl.carry?' ★':'')+
       '</div><div class="sc">'+(sl.cost!=null?sl.cost+'g':'')+tag+'</div></div>';
   }).join('') : '<div class="empty" style="grid-column:1/-1">No shop read — run with --shop.</div>';

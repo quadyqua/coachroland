@@ -406,7 +406,7 @@ class CoachRoland:
             priority=ACTIVE_CHOICE, timer=30)]
 
     def shop_plan(self, shop, comp, gold=None, partner_comp=None, partner_name=None,
-                  owned=None) -> list[dict]:
+                  owned=None, contested=None) -> list[dict]:
         """Per-slot shop view for the dashboard strip — Double-Up + pair aware.
 
         action: buy  = you want it (a PAIR you're collecting, or in your comp), affordable
@@ -433,6 +433,7 @@ class CoachRoland:
         # is one list entry, so Counter gives true copy counts.
         owned_counts = Counter(o.lower() for o in (owned or []))
         shop_counts = Counter((s or {}).get("name", "").lower() for s in shop if s and s.get("name"))
+        contested_set = {c.lower() for c in (contested or [])}   # opponent carries the lobby is heavy on
 
         view = []
         for s in shop:
@@ -451,13 +452,19 @@ class CoachRoland:
             pair = bool(name) and copies >= 2 and (mine or not comp) and not already_two_star
             tostar = ("makes 2★" if copies >= 3 else f"{copies}/3 to 2★") if pair else None
             theirs = bool(name) and not mine and not pair and partner_comp and (nl == p_carry or nl in p_units)
+            deny = bool(name) and not mine and not pair and not theirs and nl in contested_set
             action, who = None, None
             if mine or pair:
                 action, who = ("buy" if affordable else "lock"), "you"
             elif theirs:
                 action, who = ("give" if affordable else None), "partner"
-            # WHY this unit: your carry / a trait piece for your comp / a frontline body in
-            # the comp / a pair you're collecting / your partner's.
+            elif deny:
+                # A heavily-contested OPPONENT unit sitting in YOUR shop. Buying it (and
+                # benching it) starves the teams chasing it — the safe, public-info version
+                # of "sniping": no hidden copy-counts, just lobby contest.
+                action, who = ("deny" if affordable else None), "deny"
+            # WHY this unit: your carry / a comp trait-piece or body / a pair / your
+            # partner's / a deny target the lobby is contesting.
             if is_my_carry:
                 role = "carry"
             elif mine:
@@ -467,6 +474,8 @@ class CoachRoland:
                 role = "pair"
             elif theirs:
                 role = "partner"
+            elif deny:
+                role = "deny"
             else:
                 role = None
             view.append({"name": name, "cost": cost, "action": action, "carry": is_my_carry,
@@ -477,9 +486,13 @@ class CoachRoland:
         # actually afford in order; downgrade the rest to lock (yours) / skip (partner's).
         if gold is not None:
             def _prio(v):
-                return 0 if v["carry"] else (1 if v["pair"] else (2 if v["for"] == "you" else 3))
+                if v["carry"]: return 0
+                if v["pair"]: return 1
+                if v["for"] == "you": return 2
+                if v["for"] == "partner": return 3
+                return 4   # deny — opportunistic, only with gold left after your own needs
             remaining = gold
-            for v in sorted((x for x in view if x["action"] in ("buy", "give")),
+            for v in sorted((x for x in view if x["action"] in ("buy", "give", "deny")),
                             key=lambda x: (_prio(x), x["cost"] if x["cost"] is not None else 99)):
                 c = v["cost"]
                 if c is not None and c <= remaining:
