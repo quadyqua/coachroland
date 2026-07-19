@@ -1,0 +1,112 @@
+"""Scenario simulator — ask Coach Roland "what would you do?" for any board + shop, with
+NO live game, screen capture, or API. Great for sanity-checking the coaching and for
+learning what Roland recommends in a given spot.
+
+    python -m tftwatch.simulate --board "Caitlyn,Briar,Rek'Sai" \
+                                --shop "Meeple,Teemo,Caitlyn,Rek'Sai,Briar" --gold 20
+
+    # pin a comp / stage / level, or mark lobby-contested carries:
+    python -m tftwatch.simulate --board "Jinx,Rek'Sai" --shop "Jinx,Vex,Akali,Leona,Jhin" \
+                                --comp primordian_jinx --stage 4-2 --level 8 --gold 44 \
+                                --contested "Vex,Jhin"
+"""
+import argparse
+import sys
+from collections import Counter
+
+from . import cdragon, compguide
+from .coach import CoachRoland
+from .watcher import _comp_dicts, _rules_advice
+
+
+def simulate(board, shop_names, gold=None, level=None, stage=None,
+             comp_key=None, contested=None):
+    """Return Roland's read for a hypothetical spot (same logic the live watcher runs)."""
+    owned = [b.strip() for b in board if b.strip()]
+    contested = [c.strip() for c in (contested or []) if c.strip()]
+    shop = [{"name": n.strip(), "cost": cdragon.cost_of(n.strip())} for n in shop_names if n.strip()]
+
+    # active traits from your board (real trait names + counts)
+    tc = Counter()
+    for u in owned:
+        for t in cdragon.champ_traits(u):
+            tc[t] += 1
+    traits = [{"name": t, "count": n} for t, n in sorted(tc.items(), key=lambda x: -x[1])]
+
+    # comp: pinned, else the one your board points at (what the live coach auto-commits to)
+    if comp_key:
+        comp = compguide.comp_detail(comp_key)
+    else:
+        comp = compguide.suggest_for_traits(traits, contested, current_key=None) or None
+    my_comp, my_plan = _comp_dicts(
+        compguide.find(comp.get("key") or comp.get("carry")) if comp else None)
+
+    shop_view = coach_shop(owned, shop, comp, gold, contested)
+    econ = (CoachRoland().reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage)
+            if gold is not None else [])
+    advice = _rules_advice(CoachRoland(), my_comp, my_plan, None,
+                           {"players": [], "next_opponent": None},
+                           contested, [], "an open line",
+                           stage=stage, level=level, traits=traits)
+    unresolved = [n["name"] for n in shop if n["cost"] is None]
+    return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
+            "econ": econ, "advice": advice, "unresolved": unresolved,
+            "stage": stage, "level": level, "gold": gold}
+
+
+def coach_shop(owned, shop, comp, gold, contested):
+    return CoachRoland().shop_plan(shop, comp, gold=gold, owned=owned, contested=contested)
+
+
+def _fmt(res) -> str:
+    out = []
+    meta = " · ".join(x for x in [
+        f"stage {res['stage']}" if res["stage"] else None,
+        f"lvl {res['level']}" if res["level"] is not None else None,
+        f"{res['gold']}g" if res["gold"] is not None else None] if x)
+    out.append(f"Board: {', '.join(res['owned']) or '(empty)'}" + (f"   |   {meta}" if meta else ""))
+    out.append("Active traits: " + (", ".join(f"{t['name']} {t['count']}" for t in res["traits"]) or "none"))
+    c = res["comp"]
+    out.append("Building: " + (f"{c['name']} (carry {c.get('carry')})" if c else "no comp yet"))
+    out.append("\nShop:")
+    for s in res["shop"]:
+        act = (s["action"] or "skip").upper()
+        why = s.get("tostar") or {"carry": "your carry", "core": "comp core",
+                                  "body": "frontline body", "deny": "contested — deny",
+                                  "partner": "for partner"}.get(s.get("role"), "")
+        cost = f"{s['cost']}g" if s["cost"] is not None else "?"
+        out.append(f"  {s['name']:10} {cost:4} {act:5} {('· ' + why) if why else ''}")
+    if res["econ"]:
+        out.append("\nEcon: " + res["econ"][0]["text"])
+    out.append("\nCoach says:")
+    for r in res["advice"][:8]:
+        out.append(f"  - {r['text']}")
+    if res["unresolved"]:
+        out.append("\n(unrecognized names — not current-set champions: "
+                   + ", ".join(res["unresolved"]) + ")")
+    return "\n".join(out).replace("★", "*")
+
+
+def main() -> None:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    p = argparse.ArgumentParser(prog="tftwatch.simulate",
+                                description="Ask Coach Roland what to do for a hypothetical board + shop.")
+    p.add_argument("--board", default="", help="comma-separated units on your board/bench")
+    p.add_argument("--shop", required=True, help="comma-separated shop units (the 5 cards)")
+    p.add_argument("--gold", type=int, default=None)
+    p.add_argument("--level", type=int, default=None)
+    p.add_argument("--stage", default=None, help="e.g. 4-2")
+    p.add_argument("--comp", default=None, help="pin a comp (compguide key or carry); else auto-suggested")
+    p.add_argument("--contested", default="", help="comma-separated lobby-contested carries (for deny flags)")
+    a = p.parse_args()
+    res = simulate(a.board.split(","), a.shop.split(","), gold=a.gold, level=a.level,
+                   stage=a.stage, comp_key=a.comp, contested=a.contested.split(","))
+    print("\nCoach Roland — scenario\n" + "=" * 40)
+    print(_fmt(res))
+
+
+if __name__ == "__main__":
+    main()

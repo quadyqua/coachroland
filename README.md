@@ -94,6 +94,19 @@ Flags: `--shop` (buy advice + pairs), `--offers` (God pick), `--items` (carry it
 `--augments`, `--partner` (Double Up), `--brain` (opt-in **paid** LLM reasoning),
 `--board` (opt-in **paid** positioning), `--save-frames SECS` (capture frames for tuning).
 
+## Try it without a game — scenario simulator
+
+Ask Roland what to do for any hypothetical board + shop — **no live game, screen capture, or
+API needed.** Great for learning the coaching or sanity-checking a spot:
+
+```powershell
+python -m tftwatch.simulate --board "Caitlyn,Briar,Rek'Sai" --shop "Meeple,Teemo,Caitlyn,Rek'Sai,Briar" --gold 20 --stage 2-7 --level 5
+```
+
+It prints your active traits, the comp it commits to, per-slot shop advice (**buy / deny / skip**),
+econ, and the coach's calls. Add `--comp <key>` to pin a comp, `--contested "X,Y"` to flag
+lobby-contested carries (deny advice), or `--level/--gold/--stage` for accurate pacing.
+
 ## Scouting (Phase 0)
 
 ```bash
