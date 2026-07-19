@@ -54,6 +54,52 @@ def test_stale_read_prompts_rescout_once_5costs_are_in():
     assert any("re-scout thejim" in r["text"].lower() for r in recs)
 
 
+def test_ledger_stores_and_returns_scouted_comp():
+    from tftwatch.ledger import Ledger
+    led = Ledger()
+    led.note_comp("LooShiba", [{"name": "Bastion", "count": 4}, {"name": "Sniper", "count": 2}],
+                  stage="4-2")
+    assert led.comp_for("LooShiba") == [{"name": "Bastion", "count": 4},
+                                        {"name": "Sniper", "count": 2}]
+    assert led.comp_for("Nobody") is None
+    led.note_comp("LooShiba", [{"name": "Assassin", "count": 4}])   # latest scout overwrites
+    assert led.comp_for("LooShiba") == [{"name": "Assassin", "count": 4}]
+    led.note_comp("X", [{"name": None, "count": 3}])                # junk trait -> not stored
+    assert led.comp_for("X") is None
+    led.reset()
+    assert led.comp_for("LooShiba") is None                        # cleared between games
+
+
+def test_counter_comp_names_threat_and_gives_archetype_counter():
+    recs = C.counter_comp("LooShiba",
+                          traits=[{"name": "Bastion", "count": 4}, {"name": "Sniper", "count": 2}],
+                          is_next=True)
+    joined = _texts(recs)
+    # names the opponent, and counters the STRONGEST archetype (frontline count 4 > sniper 2)
+    assert "LooShiba" in joined and "heavy frontline" in joined
+    assert "You fight LooShiba next" in joined                    # next-opponent framing
+    # the frontline counter text comes from COUNTER_DYNAMICS
+    assert any("armor pen" in r["why"].lower() or "last whisper" in r["why"].lower() for r in recs)
+
+
+def test_counter_comp_reroll_vs_scaling_tempo_from_carry_cost():
+    from tftwatch import cdragon
+    roster = cdragon.current_roster()
+    cheap = next((c for c in roster if cdragon.cost_of(c) in (1, 2)), None)
+    pricey = next((c for c in roster if cdragon.cost_of(c) in (4, 5)), None)
+    if cheap:
+        why = " ".join(r["why"].lower() for r in C.counter_comp("A", carry=cheap))
+        assert "out-scale" in why or "fades late" in why
+    if pricey:
+        why = " ".join(r["why"].lower() for r in C.counter_comp("B", carry=pricey))
+        assert "before" in why and ("spike" in why or "online" in why)
+
+
+def test_counter_comp_quiet_without_data():
+    assert C.counter_comp("A", traits=[], carry=None) == []
+    assert C.counter_comp("A", traits=[{"name": "Bastion", "count": 1}]) == []   # 1-of isn't identity
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

@@ -16,25 +16,33 @@ from collections import Counter
 
 from . import cdragon, compguide
 from .coach import CoachRoland
+from .ledger import Ledger
 from .watcher import _comp_dicts, _rules_advice
+
+
+def _traits_of(units):
+    """Active trait profile (name+count) for a list of units — same shape the readers emit."""
+    tc = Counter()
+    for u in units:
+        for t in cdragon.champ_traits(u):
+            tc[t] += 1
+    return [{"name": t, "count": n} for t, n in sorted(tc.items(), key=lambda x: -x[1])]
 
 
 def simulate(board, shop_names, gold=None, level=None, stage=None,
              comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner",
-             hp=None, rivals=None):
+             hp=None, rivals=None, next_opponent=None, opp_board=None, opp_carry=None):
     """Return Roland's read for a hypothetical spot (same logic the live watcher runs).
-    Pass partner_comp_key to simulate DOUBLE UP (partner-aware shop + coaching)."""
+    Pass partner_comp_key to simulate DOUBLE UP (partner-aware shop + coaching). Pass
+    next_opponent + opp_board (their units) to simulate having SCOUTED them -> counter advice."""
     owned = [b.strip() for b in board if b.strip()]
     contested = [c.strip() for c in (contested or []) if c.strip()]
     rivals = [r.strip() for r in (rivals or []) if r.strip()]
+    opp_board = [b.strip() for b in (opp_board or []) if b.strip()]
     shop = [{"name": n.strip(), "cost": cdragon.cost_of(n.strip())} for n in shop_names if n.strip()]
 
     # active traits from your board (real trait names + counts)
-    tc = Counter()
-    for u in owned:
-        for t in cdragon.champ_traits(u):
-            tc[t] += 1
-    traits = [{"name": t, "count": n} for t, n in sorted(tc.items(), key=lambda x: -x[1])]
+    traits = _traits_of(owned)
 
     # comp: pinned, else the one your board points at (what the live coach auto-commits to)
     if comp_key:
@@ -58,6 +66,18 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     if len(rivals) >= 2 and comp and comp.get("carry") and comp["carry"] not in contested:
         contested = contested + [comp["carry"]]
 
+    # scouted opponent (optional): stash their comp in a ledger so counter advice fires,
+    # exactly as the live watcher would once a scout populates it.
+    ledger = Ledger()
+    players = []
+    if next_opponent:
+        opp_traits = _traits_of(opp_board)
+        if opp_traits:
+            ledger.note_comp(next_opponent, opp_traits, stage=stage)
+        if opp_carry:
+            ledger.note_carry(next_opponent, opp_carry, stage=stage)
+        players = [{"name": next_opponent, "hp": 100}]
+
     coach = CoachRoland()
     shop_view = coach.shop_plan(shop, comp, gold=gold, owned=owned, contested=contested,
                                 partner_comp=partner_detail, partner_name=partner_name)
@@ -65,10 +85,10 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
                                 carry=(comp or {}).get("carry"))
             if gold is not None else [])
     advice = _rules_advice(coach, my_comp, my_plan, teammate_comp,
-                           {"players": [], "next_opponent": None},
+                           {"players": players, "next_opponent": next_opponent},
                            contested, [], "an open line",
                            stage=stage, level=level, traits=traits, rivals=rivals,
-                           hp=hp, gold=gold)
+                           hp=hp, gold=gold, ledger=ledger)
     unresolved = [n["name"] for n in shop if n["cost"] is None]
     return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
             "econ": econ, "advice": advice, "unresolved": unresolved,
@@ -128,11 +148,15 @@ def main() -> None:
     p.add_argument("--partner", default="Partner", help="Double Up partner's name")
     p.add_argument("--hp", type=int, default=None, help="your current HP (drives 'roll to stabilize')")
     p.add_argument("--rivals", default="", help="names of players seen on YOUR carry (contest diagnosis)")
+    p.add_argument("--next-opponent", default=None, help="name of who you fight next (for counter advice)")
+    p.add_argument("--opp-board", default="", help="units you SCOUTED on the next opponent's board")
+    p.add_argument("--opp-carry", default=None, help="the next opponent's carry, if you spotted it")
     a = p.parse_args()
     res = simulate(a.board.split(","), a.shop.split(","), gold=a.gold, level=a.level,
                    stage=a.stage, comp_key=a.comp, contested=a.contested.split(","),
                    partner_comp_key=a.partner_comp, partner_name=a.partner, hp=a.hp,
-                   rivals=a.rivals.split(","))
+                   rivals=a.rivals.split(","), next_opponent=a.next_opponent,
+                   opp_board=a.opp_board.split(","), opp_carry=a.opp_carry)
     print("\nCoach Roland — scenario\n" + "=" * 40)
     print(_fmt(res))
 

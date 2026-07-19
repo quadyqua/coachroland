@@ -359,6 +359,74 @@ class CoachRoland:
             return []
         return [_rec(f"Counter the {threat.replace('_', ' ')} you fight next", tip, "info")]
 
+    # trait-name keywords -> the COUNTER_DYNAMICS archetype they imply. Set-agnostic on
+    # purpose (matches by substring), so it survives set rotations without a hard-coded
+    # per-set table. A comp can trip more than one; we counter the strongest.
+    _TRAIT_ARCHETYPE = {
+        "heavy_frontline": ("bastion", "bruiser", "juggernaut", "sentinel", "guardian",
+                            "warden", "vanguard", "titan", "brawler", "colossus", "knight"),
+        "assassins": ("assassin", "duelist", "slayer", "ambusher", "reaper", "shadow",
+                      "rogue", "galaxy hunter"),
+        "backline_carry": ("sniper", "gunner", "arcanist", "sorcerer", "mage", "marksman",
+                           "invoker", "deadeye", "hunter", "dragon"),
+    }
+
+    def _archetypes(self, traits):
+        """Active trait profile -> ordered list of (archetype, [trait names]) it implies,
+        strongest (highest total unit count) first."""
+        hits = {}
+        for t in (traits or []):
+            nm, cnt = (t or {}).get("name"), (t or {}).get("count") or 0
+            if not nm or cnt < 2:                       # a 1-of a trait isn't a comp identity
+                continue
+            nl = nm.lower()
+            for arch, keys in self._TRAIT_ARCHETYPE.items():
+                if any(k in nl for k in keys):
+                    a = hits.setdefault(arch, {"count": 0, "traits": []})
+                    a["count"] += cnt
+                    a["traits"].append(nm)
+        return sorted(((arch, v["traits"], v["count"]) for arch, v in hits.items()),
+                      key=lambda x: -x[2])
+
+    def counter_comp(self, name, traits=None, carry=None, is_next=False) -> list[dict]:
+        """Concrete counter advice for a scouted opponent, from their trait profile (+carry
+        if known). Names the threat, then how to beat it: positional/item counter for their
+        strongest archetype, and a tempo read from the carry's cost (punish-early vs respect
+        their scaling). Qualitative only — no win-rates (Riot TFT policy).
+        """
+        traits = traits or []
+        archs = self._archetypes(traits)
+        if not archs and not carry:
+            return []
+        who = name or "your next opponent"
+        sev = "warn" if is_next else "info"
+        # headline: who + their identity (top archetype's traits, or the carry)
+        top_traits = archs[0][1] if archs else []
+        ident = ", ".join(top_traits) if top_traits else (carry or "their board")
+        lead = f"You fight {who} next" if is_next else f"{who}'s comp scouted"
+        out = [_rec(f"{lead}: {ident}",
+                    f"You have a read on {who} — build the fight around it instead of guessing. "
+                    f"Details below.", sev)]
+        # the strongest archetype's counter (reuse the curated dynamics)
+        if archs:
+            arch = archs[0][0]
+            tip = compguide.COUNTER_DYNAMICS.get(arch)
+            if tip:
+                out.append(_rec(f"Counter {who}: {arch.replace('_', ' ')}", tip, sev))
+        # tempo read from their carry cost
+        if carry:
+            cost = cdragon.cost_of(carry)
+            if cost and cost <= 2:
+                out.append(_rec(f"{who} is a reroll board ({carry})",
+                                f"{carry} is a {cost}-cost reroll — {who} is strongest NOW and fades late. "
+                                f"Don't trade evenly into them; stay healthy and out-scale with your late game.",
+                                sev))
+            elif cost and cost >= 4:
+                out.append(_rec(f"{who} scales on {carry} ({cost}-cost)",
+                                f"{carry} is a {cost}-cost that comes online late — {who} is beatable BEFORE they "
+                                f"hit it. Keep board strength up now so they bleed before their spike.", sev))
+        return out
+
     # ---- in-game choices: Gods (2 offered) + augments (3 offered) -------------
     def choose_god(self, offered: list[str], playstyle: str = "flex") -> list[dict]:
         """Pick the better of the 2 offered Gods. Priority for a beginner: a God that FITS

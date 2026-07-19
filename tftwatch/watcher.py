@@ -193,14 +193,23 @@ def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contes
 
 def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs, alt_name,
                   stage=None, level=None, traits=None, rivals=None, scouted=None, stale=None,
-                  hp=None, gold=None):
+                  hp=None, gold=None, ledger=None):
     """Deterministic fallback advice (no LLM). Mirrors the brain's coverage cheaply."""
     out = []
     out += coach.level_pacing(stage, level, (my_comp or {}).get("playstyle"))
     out += coach.trait_advice(traits)
     out += coach.stabilize(hp, level, stage, gold, carry=(my_comp or {}).get("carry"),
                            early=(my_plan or {}).get("early_units"))
-    out += coach.scout_prompt(data.get("players"), scouted, data.get("next_opponent"), stale=stale)
+    # A scouted COMP counts as "known" too (not just a carry off the star-up feed), so we
+    # don't nag you to scout someone you've already read.
+    known = set(scouted or set()) | (set(ledger.comps) if ledger else set())
+    out += coach.scout_prompt(data.get("players"), known, data.get("next_opponent"), stale=stale)
+    # Counter the next opponent from a scouted read (their comp beats guessing). No-op until
+    # a scout populates ledger.comp_for — the read/detection half is wired separately.
+    nxt = data.get("next_opponent")
+    if ledger and nxt and ledger.comp_for(nxt):
+        out += coach.counter_comp(nxt, traits=ledger.comp_for(nxt),
+                                  carry=ledger.carry_for(nxt), is_next=True)
     if my_comp:
         carry = my_comp.get("carry")
         has_carry = bool(my_comp.get("carries"))
@@ -495,7 +504,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                   rivals=ledger.players_on((rc or {}).get("carry")),
                                                   scouted=set(ledger.carries),
                                                   stale=set(ledger.stale_reads(stage_read)),
-                                                  hp=my_hp, gold=(self_read or {}).get("gold"))
+                                                  hp=my_hp, gold=(self_read or {}).get("gold"),
+                                                  ledger=ledger)
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here

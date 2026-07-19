@@ -27,6 +27,8 @@ class Ledger:
         self.augments: dict[str, list[str]] = {}   # player name -> augments seen
         self.carries: dict[str, str] = {}          # player name -> their spiked carry
         self.carry_seen_at: dict[str, str] = {}    # player name -> stage the carry was last read
+        self.comps: dict[str, list] = {}           # player name -> scouted trait profile [{name,count}]
+        self.comp_seen_at: dict[str, str] = {}     # player name -> stage the comp was last scouted
 
     def note_augments(self, name: str, augs) -> None:
         if not name or not augs:
@@ -41,6 +43,23 @@ class Ledger:
             self.carries[name] = carry
             if stage:
                 self.carry_seen_at[name] = stage
+
+    def note_comp(self, name: str, traits, stage: str = None) -> None:
+        """Remember a scouted opponent's trait profile (their comp). Traits is a list of
+        {name,count} from the left trait panel read while viewing their board. Overwrites
+        the prior read for that player — the latest scout is the truth."""
+        if not name or not traits:
+            return
+        clean = [t for t in traits if t and t.get("name")]
+        if not clean:
+            return
+        self.comps[name] = clean
+        if stage:
+            self.comp_seen_at[name] = stage
+
+    def comp_for(self, name: str):
+        """The scouted trait profile for a player, or None if never scouted."""
+        return self.comps.get(name)
 
     def stale_reads(self, current_stage) -> list[str]:
         """Players whose carry read predates 5-costs (read at stage < 5 while it's now >= 5).
