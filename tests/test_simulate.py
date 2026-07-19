@@ -70,6 +70,28 @@ def test_single_rival_warns_multi_defers():
     assert has(two, "avoid forcing")                                                 # 2+ -> multi danger fires
 
 
+def test_double_up_both_early_prompts_a_scaling_pivot():
+    board, shop = ["Jinx", "Rek'Sai"], ["Jinx", "Vex", "Akali", "Leona", "Jhin"]
+
+    def has(res, sub):
+        return any(sub.lower() in a["text"].lower() for a in res["advice"])
+
+    # both partners on reroll boards (Jinx 2-cost + Samira 3-cost reroll, caught via playstyle)
+    # -> the TEAM caps low and gets out-scaled; nudge one of you to a scaling anchor
+    both = simulate(board, shop, comp_key="primordian_jinx", partner_comp_key="samira_reroll",
+                    partner_name="Wisp", stage="4-2", level=8)
+    assert has(both, "one of you needs to scale")
+    why = next(a["why"] for a in both["advice"] if "needs to scale" in a["text"].lower())
+    assert "wisp" in why.lower() and "reinforc" in why.lower()      # names partner + the mechanic
+    # partner already scales (Aurelion Sol, a 4-cost fast-8) -> the team is fine, stay quiet
+    one = simulate(board, shop, comp_key="primordian_jinx", partner_comp_key="mecha_sol",
+                   partner_name="Wisp", stage="4-2", level=8)
+    assert not has(one, "one of you needs to scale")
+    # not Double Up (no partner) -> never fires
+    solo = simulate(board, shop, comp_key="primordian_jinx", stage="4-2", level=8)
+    assert not has(solo, "one of you needs to scale")
+
+
 def test_roll_timing_uses_shop_odds():
     def econ(ck, lvl, gold):
         r = simulate(["Aatrox"], ["Aatrox", "Leona", "Kai'Sa", "Vex", "Jinx"],

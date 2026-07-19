@@ -68,6 +68,7 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
             out += coach.item_plan(my_comp, contested=is_contested, alt=alt_name)
         if teammate_comp:
             out += coach.doubleup(my_comp, teammate_comp, data, augments=augs, alt_comp=alt_name)
+            out += coach.team_scaling(my_comp, teammate_comp, contested=contested)   # both-early -> one scales
         else:
             out += coach.contested_pivot(my_comp, data, augments=augs, alt_comp=alt_name)
         out += coach.recommend(contested, my_intended=carry)

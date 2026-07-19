@@ -209,6 +209,51 @@ class CoachRoland:
                 "info"))
         return recs
 
+    def team_scaling(self, my_comp: dict, teammate_comp: dict, contested=None) -> list[dict]:
+        """Double Up: if BOTH boards are early/reroll (low-capping), the team gets out-scaled
+        late — one partner should pivot to a scaling/frontline anchor. Reinforcements send your
+        survivors to your partner, so a durable late board props up BOTH of you.
+
+        "Early" = a reroll carry: playstyle 'reroll', or a 1-2 cost carry (they spike now and
+        fade once 4/5-costs arrive). Fires only when NEITHER of you scales.
+        """
+        if not my_comp or not teammate_comp:
+            return []
+
+        def carry_of(c):
+            return c.get("carry") or (c.get("carries") or [None])[0]
+
+        def is_early(c):
+            carry = carry_of(c)
+            ps = (c.get("playstyle") or "").lower()
+            if not ps:                                 # the passed dict often lacks it -> look it up
+                full = compguide.find(carry)
+                ps = (full.get("playstyle") or "").lower() if full else ""
+            if ps == "reroll":                         # catches 3-cost rerolls (Samira) too
+                return True
+            cost = cdragon.cost_of(carry)
+            return cost is not None and cost <= 2       # 1-2 cost carry = a reroll/early board
+
+        my_carry, mate_carry = carry_of(my_comp), carry_of(teammate_comp)
+        if not my_carry or not mate_carry:
+            return []
+        if not (is_early(my_comp) and is_early(teammate_comp)):
+            return []                                  # at least one of you already scales -> fine
+
+        partner = teammate_comp.get("name") or "your partner"
+        # a concrete late-scaling anchor: the best OPEN line whose carry is a 4/5-cost
+        anchor = next((c for c in compguide.open_comps(contested or [])
+                       if (cdragon.cost_of(c.get("carry")) or 0) >= 4), None)
+        anchor_txt = (f"pivot to {anchor['name']} (its {anchor.get('carry')} scales into the late game)"
+                      if anchor else "pivot one board to a late-scaling / frontline line")
+        return [_rec(
+            f"Both boards spike early — one of you needs to scale",
+            f"You're on {my_carry} and {partner} is on {mate_carry} — both reroll boards that are "
+            f"strongest NOW and fade once 4/5-costs come online. As a team you'll get out-scaled in the "
+            f"late game. Whoever's further behind should {anchor_txt}; reinforcements send your survivors "
+            f"to your partner, so a durable scaling board carries BOTH of you.",
+            "warn")]
+
     # ---- positioning (experimental) ------------------------------------------
     def positioning(self, board: dict) -> list[dict]:
         units = (board or {}).get("units", []) or []
