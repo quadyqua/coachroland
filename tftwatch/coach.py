@@ -560,6 +560,22 @@ class CoachRoland:
                      "Hold toward 50 gold for interest; play your strongest board and slam item pieces. Roll at "
                      "level 8 (around stage 4-1).", "info")]
 
+    def trouble(self, carry, rivals, alt="an open line") -> list[dict]:
+        """'Am I in trouble?' — the CONTEST diagnosis. rivals = players seen on YOUR carry.
+        Exactly one rival = a soft warn (you're splitting copies); 2+ is already handled by
+        discourage/recommend, so this stays quiet there to avoid double-warning. We can't
+        see a griefer benching your pieces (hidden info) — but the symptom (you stop hitting)
+        and the fix (be pivot-ready) are the same, so the advice says so honestly.
+        """
+        rivals = [r for r in (rivals or []) if r]
+        if not carry or len(rivals) != 1:
+            return []
+        return [_rec(
+            f"{rivals[0]} is also on {carry}",
+            f"One rival is splitting your {carry} copies. Not fatal — keep rolling — but watch your hits: "
+            f"if the pool dries up (contested, or someone's holding your pieces), you'll both bottom out. "
+            f"Stay ready to pivot to {alt}, or concede {carry} to them.", "warn")]
+
     def comp_progress(self, comp, owned, traits=None) -> list[dict]:
         """Shopping list: which of your comp's core units you have vs still need.
 

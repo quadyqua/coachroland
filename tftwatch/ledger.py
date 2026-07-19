@@ -37,6 +37,14 @@ class Ledger:
     def carry_for(self, name: str):
         return self.carries.get(name)
 
+    def players_on(self, carry: str) -> list[str]:
+        """Names of players observed on a given carry — contest visibility (public/scouted
+        info only; we never see benches, so this is who's *shown* they're on it)."""
+        if not carry:
+            return []
+        cl = carry.lower()
+        return sorted(n for n, c in self.carries.items() if c and c.lower() == cl)
+
     def contested_carries(self, min_players: int = 2) -> list[str]:
         """Carries that >= min_players DISTINCT players are on, across everything seen this
         game (not just the current frame) — accumulates as opponents star up over time."""

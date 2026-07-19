@@ -55,6 +55,21 @@ def test_low_hp_triggers_roll_to_stabilize():
     assert healthy["econ"] and "roll it all" not in healthy["econ"][0]["text"].lower()
 
 
+def test_single_rival_warns_multi_defers():
+    args = dict(comp_key="primordian_jinx", stage="4-2", level=8, gold=30)
+    board, shop = ["Jinx", "Rek'Sai"], ["Jinx", "Vex", "Akali", "Leona", "Jhin"]
+
+    def has(res, sub):
+        return any(sub.lower() in a["text"].lower() for a in res["advice"])
+
+    assert not has(simulate(board, shop, rivals=[], **args), "also on")              # nobody -> quiet
+    one = simulate(board, shop, rivals=["TheJim"], **args)
+    assert has(one, "thejim is also on jinx")                                        # 1 -> named warn
+    two = simulate(board, shop, rivals=["TheJim", "LooShiba"], **args)
+    assert not has(two, "also on")                                                   # 2+ -> single-warn defers
+    assert has(two, "avoid forcing")                                                 # 2+ -> multi danger fires
+
+
 def test_carry_item_builds_have_no_duplicates():
     from tftwatch import compguide
     for key, c in compguide.COMPS.items():

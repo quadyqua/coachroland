@@ -20,11 +20,13 @@ from .watcher import _comp_dicts, _rules_advice
 
 
 def simulate(board, shop_names, gold=None, level=None, stage=None,
-             comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner", hp=None):
+             comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner",
+             hp=None, rivals=None):
     """Return Roland's read for a hypothetical spot (same logic the live watcher runs).
     Pass partner_comp_key to simulate DOUBLE UP (partner-aware shop + coaching)."""
     owned = [b.strip() for b in board if b.strip()]
     contested = [c.strip() for c in (contested or []) if c.strip()]
+    rivals = [r.strip() for r in (rivals or []) if r.strip()]
     shop = [{"name": n.strip(), "cost": cdragon.cost_of(n.strip())} for n in shop_names if n.strip()]
 
     # active traits from your board (real trait names + counts)
@@ -51,6 +53,11 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
         teammate_comp = {"name": partner_name,
                          "carries": [pcarry] if pcarry and pcarry.lower() != "flex" else []}
 
+    # 2+ rivals on your carry -> also mark it contested so the multi-contest danger fires
+    # (mirrors the live watcher, where contested_carries and players_on both trip).
+    if len(rivals) >= 2 and comp and comp.get("carry") and comp["carry"] not in contested:
+        contested = contested + [comp["carry"]]
+
     coach = CoachRoland()
     shop_view = coach.shop_plan(shop, comp, gold=gold, owned=owned, contested=contested,
                                 partner_comp=partner_detail, partner_name=partner_name)
@@ -59,7 +66,7 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     advice = _rules_advice(coach, my_comp, my_plan, teammate_comp,
                            {"players": [], "next_opponent": None},
                            contested, [], "an open line",
-                           stage=stage, level=level, traits=traits)
+                           stage=stage, level=level, traits=traits, rivals=rivals)
     unresolved = [n["name"] for n in shop if n["cost"] is None]
     return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
             "econ": econ, "advice": advice, "unresolved": unresolved,
@@ -118,10 +125,12 @@ def main() -> None:
     p.add_argument("--partner-comp", default=None, help="DOUBLE UP: partner's comp (key or carry)")
     p.add_argument("--partner", default="Partner", help="Double Up partner's name")
     p.add_argument("--hp", type=int, default=None, help="your current HP (drives 'roll to stabilize')")
+    p.add_argument("--rivals", default="", help="names of players seen on YOUR carry (contest diagnosis)")
     a = p.parse_args()
     res = simulate(a.board.split(","), a.shop.split(","), gold=a.gold, level=a.level,
                    stage=a.stage, comp_key=a.comp, contested=a.contested.split(","),
-                   partner_comp_key=a.partner_comp, partner_name=a.partner, hp=a.hp)
+                   partner_comp_key=a.partner_comp, partner_name=a.partner, hp=a.hp,
+                   rivals=a.rivals.split(","))
     print("\nCoach Roland — scenario\n" + "=" * 40)
     print(_fmt(res))
 

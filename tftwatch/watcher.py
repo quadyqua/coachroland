@@ -192,7 +192,7 @@ def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contes
 
 
 def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs, alt_name,
-                  stage=None, level=None, traits=None):
+                  stage=None, level=None, traits=None, rivals=None):
     """Deterministic fallback advice (no LLM). Mirrors the brain's coverage cheaply."""
     out = []
     out += coach.level_pacing(stage, level, (my_comp or {}).get("playstyle"))
@@ -202,6 +202,7 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
         has_carry = bool(my_comp.get("carries"))
         is_contested = has_carry and carry.lower() in {c.lower() for c in contested}
         if has_carry:
+            out += coach.trouble(carry, rivals, alt=alt_name)   # "someone's on my carry" warn
             out += coach.early_game(my_plan, stage=stage)
             out += coach.item_holder_advice(my_comp)
             out += coach.item_plan(my_comp, contested=is_contested, alt=alt_name)
@@ -482,7 +483,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                         strategic = _rules_advice(coach, rc, rp, teammate_comp,
                                                   data, contested, augs, alt_name,
                                                   stage=stage_read, level=(self_read or {}).get("level"),
-                                                  traits=traits_read)
+                                                  traits=traits_read,
+                                                  rivals=ledger.players_on((rc or {}).get("carry")))
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here
