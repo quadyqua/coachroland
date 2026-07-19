@@ -53,6 +53,10 @@ this first, then walk them through **Part 1** below.
 > Kubernetes.** Docker/Kubernetes is *only* for the separate, optional **Cloud Scout API**
 > (a DevOps demo — see [k8s/README.md](k8s/README.md)). If you just want to use the coach,
 > do **Part 1** and stop.
+>
+> **Platform:** the **live coach is Windows-only** — it screen-captures the running TFT game
+> (Windows). On macOS/Linux you can still `pip install` and run the **tests + scenario
+> simulator** (pure logic, no capture), just not the live screen reader.
 
 ### Part 1 — the Coach Roland app (what you run to play)
 
@@ -69,6 +73,11 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1          # PowerShell   (Git Bash: source .venv/Scripts/activate)
 pip install -r requirements.txt
 ```
+> If `Activate.ps1` errors with *"running scripts is disabled on this system,"* PowerShell is
+> blocking local scripts (common on a fresh machine). Run once:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then re-run the activate line — or
+> just use Git Bash (`source .venv/Scripts/activate`), which has no such restriction.
+> The `pip install` pulls `rapidocr-onnxruntime` (OCR) and its deps, so it can take a minute.
 
 **3. (Optional) GPU acceleration** — any DirectX 12 GPU (NVIDIA/AMD/Intel) makes the screen
 readers ~4× faster. The app auto-detects it and falls back to CPU if absent:
@@ -95,6 +104,8 @@ python -m tftwatch.dashboard --shop --offers --items --augments
 ```
 Open **http://127.0.0.1:8765** in a browser and drag it to your second monitor. Just play —
 it reads your screen and coaches on its own. Preview the UI with no game via `--demo`.
+The **first run downloads a ~25 MB champion-data file** (cached under `.cache/`, so it's a
+one-time wait) — you need an internet connection that first time.
 
 **7. Verify the install** (no game needed — runs the reader/logic tests):
 ```powershell
