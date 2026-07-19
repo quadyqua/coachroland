@@ -510,10 +510,26 @@ class CoachRoland:
                     v["action"] = "lock" if v["for"] == "you" else None
         return view
 
-    def reroll_advice(self, gold, level, playstyle, stage=None) -> list[dict]:
-        """When to reroll vs level vs save — from gold + level + playstyle, tuned by stage."""
+    def reroll_advice(self, gold, level, playstyle, stage=None, hp=None) -> list[dict]:
+        """When to reroll vs level vs save — from gold + level + playstyle, tuned by stage.
+
+        HP overrides everything: if you're about to die, interest is worthless — roll it
+        down NOW to stabilize. This beats "build to 50 gold" when you're sitting at 2 HP.
+        """
         if gold is None:
             return []
+        # Desperation / stabilize: low HP means you may not live to spend that gold.
+        if hp is not None and hp <= 30:
+            if gold >= 10:
+                critical = hp <= 15
+                return [_rec(("Roll it ALL down — you're at %d HP" % hp) if critical
+                             else ("Roll down to stabilize — %d HP" % hp),
+                             f"{hp} HP with {gold} gold — interest won't save you if you die. Spend it: roll "
+                             f"to hit upgrades / 2-star your board and win the next fight. You can't take gold "
+                             f"to the grave.", "danger" if critical else "warn")]
+            return [_rec("Low HP (%d) — play your strongest board" % hp,
+                         f"Only {gold} gold, so you can't roll much. Field your strongest units, position "
+                         f"carefully, and scrap for the win this round.", "warn")]
         act = None
         if stage:
             try:

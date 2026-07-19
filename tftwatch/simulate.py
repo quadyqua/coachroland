@@ -20,7 +20,7 @@ from .watcher import _comp_dicts, _rules_advice
 
 
 def simulate(board, shop_names, gold=None, level=None, stage=None,
-             comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner"):
+             comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner", hp=None):
     """Return Roland's read for a hypothetical spot (same logic the live watcher runs).
     Pass partner_comp_key to simulate DOUBLE UP (partner-aware shop + coaching)."""
     owned = [b.strip() for b in board if b.strip()]
@@ -54,7 +54,7 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     coach = CoachRoland()
     shop_view = coach.shop_plan(shop, comp, gold=gold, owned=owned, contested=contested,
                                 partner_comp=partner_detail, partner_name=partner_name)
-    econ = (coach.reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage)
+    econ = (coach.reroll_advice(gold, level, (comp or {}).get("playstyle"), stage=stage, hp=hp)
             if gold is not None else [])
     advice = _rules_advice(coach, my_comp, my_plan, teammate_comp,
                            {"players": [], "next_opponent": None},
@@ -63,7 +63,7 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
     unresolved = [n["name"] for n in shop if n["cost"] is None]
     return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
             "econ": econ, "advice": advice, "unresolved": unresolved,
-            "stage": stage, "level": level, "gold": gold,
+            "stage": stage, "level": level, "gold": gold, "hp": hp,
             "partner": (partner_detail["name"] if partner_detail else None)}
 
 
@@ -72,7 +72,8 @@ def _fmt(res) -> str:
     meta = " · ".join(x for x in [
         f"stage {res['stage']}" if res["stage"] else None,
         f"lvl {res['level']}" if res["level"] is not None else None,
-        f"{res['gold']}g" if res["gold"] is not None else None] if x)
+        f"{res['gold']}g" if res["gold"] is not None else None,
+        f"{res['hp']} HP" if res.get("hp") is not None else None] if x)
     out.append(f"Board: {', '.join(res['owned']) or '(empty)'}" + (f"   |   {meta}" if meta else ""))
     out.append("Active traits: " + (", ".join(f"{t['name']} {t['count']}" for t in res["traits"]) or "none"))
     c = res["comp"]
@@ -116,10 +117,11 @@ def main() -> None:
     p.add_argument("--contested", default="", help="comma-separated lobby-contested carries (for deny flags)")
     p.add_argument("--partner-comp", default=None, help="DOUBLE UP: partner's comp (key or carry)")
     p.add_argument("--partner", default="Partner", help="Double Up partner's name")
+    p.add_argument("--hp", type=int, default=None, help="your current HP (drives 'roll to stabilize')")
     a = p.parse_args()
     res = simulate(a.board.split(","), a.shop.split(","), gold=a.gold, level=a.level,
                    stage=a.stage, comp_key=a.comp, contested=a.contested.split(","),
-                   partner_comp_key=a.partner_comp, partner_name=a.partner)
+                   partner_comp_key=a.partner_comp, partner_name=a.partner, hp=a.hp)
     print("\nCoach Roland — scenario\n" + "=" * 40)
     print(_fmt(res))
 

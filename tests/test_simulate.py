@@ -44,6 +44,17 @@ def test_early_game_advice_suppressed_in_late_game():
     assert not any(a["text"].startswith("EARLY") for a in late["advice"])    # stale by stage 5 -> suppressed
 
 
+def test_low_hp_triggers_roll_to_stabilize():
+    shop = ["Jinx", "Vex", "Akali", "Leona", "Jhin"]
+    dying = simulate(["Jinx"], shop, gold=40, hp=2, comp_key="primordian_jinx", stage="4-6", level=8)
+    healthy = simulate(["Jinx"], shop, gold=40, hp=60, comp_key="primordian_jinx", stage="4-6", level=8)
+    # at 2 HP with gold, override econ -> a loud "roll it down" call
+    assert dying["econ"] and dying["econ"][0]["severity"] == "danger"
+    assert "roll" in dying["econ"][0]["text"].lower()
+    # healthy player keeps normal econ (not the desperation override)
+    assert healthy["econ"] and "roll it all" not in healthy["econ"][0]["text"].lower()
+
+
 def test_carry_item_builds_have_no_duplicates():
     from tftwatch import compguide
     for key, c in compguide.COMPS.items():

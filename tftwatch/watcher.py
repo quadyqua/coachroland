@@ -262,6 +262,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
     last_shop_read = 0.0
     last_stage = None                      # reused by the fast shop path (stage changes slowly)
     last_contested = []                    # reused by the fast shop path (deny flags)
+    last_hp = None                         # your own HP -> HP-aware "roll to stabilize" advice
 
     with mss.MSS() as sct:
         monitor = sct.monitors[1]
@@ -306,7 +307,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                     contested=last_contested)
                             secon = coach.reroll_advice(sr.get("gold"), sr.get("level"),
                                                         (last_comp or {}).get("playstyle"),
-                                                        stage=last_stage)
+                                                        stage=last_stage, hp=last_hp)
                             if on_update:
                                 on_update({"ts": time.strftime('%H:%M:%S'), "event": "shop",
                                            "shop": sview, "econ": (secon[0] if secon else None),
@@ -368,6 +369,9 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                     last_valid_read = now                      # real lobby on screen -> game is live
                     game_over_fired = False
                     _smooth_hp(players, hp_hist)               # correct misread HP before anyone uses it
+                    my_hp = next((p.get("hp") for p in players if p.get("is_self")), None)
+                    if my_hp is not None:
+                        last_hp = my_hp                        # cache for the fast shop path's econ
                     coach.observe(data)                        # keep session tracking; output dropped (HP reads too noisy)
                     for p in players:                          # ledger: remember spiked carries
                         if p.get("unit") and p.get("name"):
@@ -506,7 +510,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                         except Exception as e:
                             print(f"  (item read failed: {e})")
                     econ = (coach.reroll_advice(self_read.get("gold"), self_read.get("level"),
-                                                (last_comp or {}).get("playstyle"), stage=stage_read)
+                                                (last_comp or {}).get("playstyle"), stage=stage_read,
+                                                hp=my_hp)
                             if self_read else [])
                     stamp = time.strftime('%H:%M:%S')
                     if on_update:
