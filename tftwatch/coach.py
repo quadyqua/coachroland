@@ -781,6 +781,22 @@ class CoachRoland:
                     f"fast where you're currently stuck. Pivot before you bleed out.", "buy")]
         return []
 
+    def not_hitting(self, report, alt="an open line") -> list[dict]:
+        """'You're not hitting' — surfaced when the HitTracker shows you've seen far fewer
+        copies of your carry than the odds predict. Honest: we can't see who's benching your
+        pieces, but the symptom (pool's dry) and the fix (stop dumping gold, lock what you have,
+        be ready to pivot) are the same whether it's contest or a griefer."""
+        if not report or report.get("hitting") is not False:
+            return []                                      # None (no data) or True (on pace) -> quiet
+        carry, seen = report["carry"], report["seen"]
+        exp, rolls = report["expected"], report["rolls"]
+        return [_rec(
+            f"You're not hitting {carry} — the pool looks dry",
+            f"You've rolled ~{rolls} times and seen only {seen} {carry} (the odds say ~{exp} by now). "
+            f"Either it's contested and drained, or someone's holding your copies to block you — the app "
+            f"can't see benches, but the symptom's the same. Stop dumping gold into a dry pool: lock your "
+            f"best 2-star, cap your board strength elsewhere, and be ready to pivot to {alt}.", "warn")]
+
     def pool_check(self, carry, n_rivals) -> list[dict]:
         """Pool-size-aware contest read. A 5-cost pool is only 9, so even a 2-star is a
         scramble once contested; a 1-cost pool (30) tolerates it. Estimated from OBSERVED

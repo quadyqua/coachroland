@@ -17,6 +17,7 @@ from collections import Counter
 from . import cdragon, compguide
 from .coach import CoachRoland
 from .ledger import Ledger
+from .tracker import HitTracker
 from .coaching import _comp_dicts, _rules_advice   # capture-free: no mss/watcher import
 
 
@@ -31,7 +32,8 @@ def _traits_of(units):
 
 def simulate(board, shop_names, gold=None, level=None, stage=None,
              comp_key=None, contested=None, partner_comp_key=None, partner_name="Partner",
-             hp=None, rivals=None, next_opponent=None, opp_board=None, opp_carry=None):
+             hp=None, rivals=None, next_opponent=None, opp_board=None, opp_carry=None,
+             rolls=None, carry_seen=None):
     """Return Roland's read for a hypothetical spot (same logic the live watcher runs).
     Pass partner_comp_key to simulate DOUBLE UP (partner-aware shop + coaching). Pass
     next_opponent + opp_board (their units) to simulate having SCOUTED them -> counter advice."""
@@ -78,6 +80,15 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
             ledger.note_carry(next_opponent, opp_carry, stage=stage)
         players = [{"name": next_opponent, "hp": 100}]
 
+    # "you're not hitting": simulate having rolled `rolls` times and seen `carry_seen` copies
+    # of your carry, then let the tracker judge it against the shop odds.
+    hit_report = None
+    if rolls is not None and comp and comp.get("carry"):
+        ht = HitTracker()
+        ht.slots_seen = int(rolls) * 5
+        ht.seen[comp["carry"]] = int(carry_seen or 0)
+        hit_report = ht.report(comp["carry"], level)
+
     coach = CoachRoland()
     shop_view = coach.shop_plan(shop, comp, gold=gold, owned=owned, contested=contested,
                                 partner_comp=partner_detail, partner_name=partner_name)
@@ -88,7 +99,7 @@ def simulate(board, shop_names, gold=None, level=None, stage=None,
                            {"players": players, "next_opponent": next_opponent},
                            contested, [], "an open line",
                            stage=stage, level=level, traits=traits, rivals=rivals,
-                           hp=hp, gold=gold, ledger=ledger)
+                           hp=hp, gold=gold, ledger=ledger, hit_report=hit_report)
     unresolved = [n["name"] for n in shop if n["cost"] is None]
     return {"owned": owned, "traits": traits, "comp": comp, "shop": shop_view,
             "econ": econ, "advice": advice, "unresolved": unresolved,
@@ -151,12 +162,15 @@ def main() -> None:
     p.add_argument("--next-opponent", default=None, help="name of who you fight next (for counter advice)")
     p.add_argument("--opp-board", default="", help="units you SCOUTED on the next opponent's board")
     p.add_argument("--opp-carry", default=None, help="the next opponent's carry, if you spotted it")
+    p.add_argument("--rolls", type=int, default=None, help="'not hitting' check: how many times you've rolled")
+    p.add_argument("--carry-seen", type=int, default=None, help="how many copies of your carry you've seen in those rolls")
     a = p.parse_args()
     res = simulate(a.board.split(","), a.shop.split(","), gold=a.gold, level=a.level,
                    stage=a.stage, comp_key=a.comp, contested=a.contested.split(","),
                    partner_comp_key=a.partner_comp, partner_name=a.partner, hp=a.hp,
                    rivals=a.rivals.split(","), next_opponent=a.next_opponent,
-                   opp_board=a.opp_board.split(","), opp_carry=a.opp_carry)
+                   opp_board=a.opp_board.split(","), opp_carry=a.opp_carry,
+                   rolls=a.rolls, carry_seen=a.carry_seen)
     print("\nCoach Roland — scenario\n" + "=" * 40)
     print(_fmt(res))
 

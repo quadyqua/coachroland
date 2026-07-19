@@ -37,7 +37,7 @@ from . import localvision
 from .ledger import Ledger
 from .scout_detect import ScoutDetector
 from .coaching import _comp_dicts, _rules_advice
-from .tracker import PurchaseTracker
+from .tracker import PurchaseTracker, HitTracker
 from .vision import (read_lobby_pil, read_board_pil, read_augments_pil, read_self_pil,
                      read_traits_pil, read_offer_pil, _crop_region, RIGHT_PANEL)
 from .coach import CoachRoland
@@ -189,6 +189,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
     ledger = Ledger()
     scout_det = ScoutDetector()         # left-panel != your comp -> you're scouting someone
     owned_tracker = PurchaseTracker()   # infers your bought units from shop diffs (no bench read)
+    hit_tracker = HitTracker()          # copies-of-carry SEEN vs odds -> "you're not hitting"
     my_comp, my_plan, teammate_comp = _comp_context(comp_key, partner_name, partner_comp_key)
     partner_detail = compguide.comp_detail(partner_comp_key) if partner_comp_key else None
     brain_on = use_brain and bool(os.getenv("OPENAI_API_KEY"))
@@ -254,8 +255,9 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             print(f"  (fast shop read failed: {e})")
                             sr = None
                         if sr:
-                            owned_tracker.update(
-                                [s.get("name") for s in (sr.get("shop") or [])], sr.get("gold"))
+                            shop_names = [s.get("name") for s in (sr.get("shop") or [])]
+                            owned_tracker.update(shop_names, sr.get("gold"))
+                            hit_tracker.update(shop_names)   # count copies-of-carry seen per roll
                             owned = list(owned_tracker.owned()) or None
                             sview = coach.shop_plan(sr.get("shop"), last_comp, sr.get("gold"),
                                                     partner_comp=partner_detail,
@@ -308,6 +310,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             scout_det.reset()
                             last_scout = None
                             owned_tracker.reset()
+                            hit_tracker.reset()
                             last_brain_recs = []
                             last_comp = compguide.comp_detail(comp_key) if comp_key else None
                             hp_hist.clear()
@@ -357,8 +360,9 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                         except Exception as e:
                             print(f"  (shop read failed: {e})")
                     if self_read:                          # infer purchases from shop diffs
-                        owned_tracker.update([s.get("name") for s in (self_read.get("shop") or [])],
-                                             self_read.get("gold"))
+                        sr_names = [s.get("name") for s in (self_read.get("shop") or [])]
+                        owned_tracker.update(sr_names, self_read.get("gold"))
+                        hit_tracker.update(sr_names)       # count copies-of-carry seen per roll
 
                     # Traits = ground truth for which comp you're building -> read whenever the
                     # brain is on, so the comp pick is grounded in YOUR board, not random.
@@ -453,6 +457,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                 # no trait read this frame (combat/transition/choice screen) -> keep
                                 # advising your COMMITTED comp; don't fall back to generic "open lines"
                                 rc, rp = _comp_dicts(compguide.COMPS.get(last_comp["key"]))
+                        hit_report = hit_tracker.report((rc or {}).get("carry"),
+                                                        (self_read or {}).get("level"))
                         strategic = _rules_advice(coach, rc, rp, teammate_comp,
                                                   data, contested, augs, alt_name,
                                                   stage=stage_read, level=(self_read or {}).get("level"),
@@ -461,7 +467,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                   scouted=set(ledger.carries),
                                                   stale=set(ledger.stale_reads(stage_read)),
                                                   hp=my_hp, gold=(self_read or {}).get("gold"),
-                                                  ledger=ledger, last_scout=last_scout)
+                                                  ledger=ledger, last_scout=last_scout,
+                                                  hit_report=hit_report)
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here
