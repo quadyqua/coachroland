@@ -64,6 +64,13 @@ def _signature(full_img: Image.Image) -> np.ndarray:
                            np.asarray(bench, dtype=np.int16).ravel()])
 
 
+def _signature_shop(full_img: Image.Image) -> np.ndarray:
+    """Tiny fingerprint of just the shop / bottom-HUD strip, so a reroll triggers a
+    fast shop-only read without waiting on the heavier lobby/traits cycle."""
+    s = _crop_region(full_img, localvision.SELF_REGION).convert("L").resize((64, 10))
+    return np.asarray(s, dtype=np.int16).ravel()
+
+
 def _changed(a, b, threshold: float = 6.0) -> bool:
     if a is None or b is None:
         return True
@@ -105,13 +112,21 @@ def _comp_context(comp_key, partner_name, partner_comp_key):
 
 
 def _smooth_hp(players, hp_hist, max_drop: int = 25) -> None:
-    """Reject implausible single-read HP crashes — the vision misreads tiny HP digits
-    (e.g. '89' -> '9'). A player can't lose more than ~one combat (~25) in a round, so a
-    bigger drop is treated as a misread and the last good value is kept. Mutates players.
+    """Stabilise per-player HP across reads. Two corrections:
+      - HP not read this frame (None) -> reuse that player's last known value;
+      - an implausibly large single-frame drop (misread tiny digits, e.g. '89' -> '9') ->
+        keep the last good value (you can't lose more than ~one combat, ~25, per round).
+    Mutates players.
     """
     for p in players:
         name, hp = p.get("name"), p.get("hp")
-        if not name or not isinstance(hp, int):
+        if not name:
+            continue
+        if hp is None:                     # not read this frame -> keep last known, if any
+            if name in hp_hist:
+                p["hp"] = hp_hist[name]
+            continue
+        if not isinstance(hp, int):
             continue
         prev = hp_hist.get(name)
         if prev is not None and hp < prev - max_drop:
@@ -202,7 +217,7 @@ def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs,
     return out
 
 
-def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
+def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap: float = 0.3,
           model: str = "gpt-4o", on_update=None,
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
@@ -243,6 +258,9 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
     game_over_fired = False                # so we reset/blank only ONCE per real game-over
     GAME_OVER_GAP = 45.0                   # tolerate brief alt-tabs; only reset after this gap
     last_save = 0.0                        # for --save-frames training capture
+    last_shop_sig = None                   # fast shop path: reroll change-detection
+    last_shop_read = 0.0
+    last_stage = None                      # reused by the fast shop path (stage changes slowly)
 
     with mss.MSS() as sct:
         monitor = sct.monitors[1]
@@ -261,12 +279,56 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                     except Exception as e:
                         print(f"  (frame save failed: {e})")
 
+                # --- Fast shop path -------------------------------------------------
+                # The shop read is cheap (local OCR on the GPU) and the shop changes
+                # every reroll, so read it on its OWN quick cadence and push a shop-only
+                # update — decoupled from the heavier lobby/traits/board reads below, so
+                # the shop keeps up with rerolls instead of waiting a full ~4-5s cycle.
+                # The dashboard merges partial updates, so this doesn't clobber the lobby.
+                if shop and local_eyes:
+                    shop_sig = _signature_shop(full)
+                    if _changed(last_shop_sig, shop_sig) and (now - last_shop_read) >= shop_gap:
+                        last_shop_sig = shop_sig
+                        last_shop_read = now
+                        try:
+                            sr = localvision.read_self_pil(full)
+                        except Exception as e:
+                            print(f"  (fast shop read failed: {e})")
+                            sr = None
+                        if sr:
+                            owned_tracker.update(
+                                [s.get("name") for s in (sr.get("shop") or [])], sr.get("gold"))
+                            owned = list(owned_tracker.owned()) or None
+                            sview = coach.shop_plan(sr.get("shop"), last_comp, sr.get("gold"),
+                                                    partner_comp=partner_detail,
+                                                    partner_name=partner_name, owned=owned)
+                            secon = coach.reroll_advice(sr.get("gold"), sr.get("level"),
+                                                        (last_comp or {}).get("playstyle"),
+                                                        stage=last_stage)
+                            if on_update:
+                                on_update({"ts": time.strftime('%H:%M:%S'), "event": "shop",
+                                           "shop": sview, "econ": (secon[0] if secon else None),
+                                           "gold": sr.get("gold"), "level": sr.get("level")})
+                        if not sr:
+                            time.sleep(poll)
+                        continue
+
                 if _changed(last_sig, sig):
                     last_sig = sig
                     pending_since = now
                 elif pending_since and (now - pending_since) >= settle and (now - last_read) >= min_gap:
                     pending_since = None
                     last_read = now
+                    # In-game gate: a valid stage indicator ('4-6') means we're actually in
+                    # a TFT game and not the client/desktop (friends list, news, clock). Read
+                    # it first and reuse it for the timing advice below.
+                    try:
+                        stage_read = (localvision.read_stage_pil(full).get("stage")
+                                      if local_eyes else None)
+                    except Exception as e:
+                        print(f"  (stage read failed: {e})")
+                        stage_read = None
+                    last_stage = stage_read or last_stage
                     try:
                         data = (localvision.read_lobby_pil(full) if local_eyes
                                 else read_lobby_pil(full, model=model))
@@ -276,8 +338,8 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         continue
 
                     players = data.get("players") or []
-                    if len(players) < 2:
-                        # No lobby on screen — you alt-tabbed, a loading/transition frame, etc.
+                    if len(players) < 2 or (local_eyes and not localvision._valid_stage(stage_read)):
+                        # Not in a game (client/desktop), or a loading/transition/combat frame.
                         # Don't reset on a brief absence; keep your last comp/advice shown. Only
                         # after a real gap (game actually ended) do we clear + blank, once.
                         if (now - last_valid_read) >= GAME_OVER_GAP and not game_over_fired:
@@ -342,12 +404,6 @@ def watch(poll: float = 1.0, settle: float = 1.0, min_gap: float = 6.0,
                         except Exception as e:
                             print(f"  (trait read failed: {e})")
 
-                    stage_read = None                  # round indicator (free) -> timing advice
-                    if local_eyes:
-                        try:
-                            stage_read = localvision.read_stage_pil(full).get("stage")
-                        except Exception as e:
-                            print(f"  (stage read failed: {e})")
 
                     # Bench tiles are icons (recognition unreliable), so "what you own" is INFERRED
                     # from shop diffs (PurchaseTracker): units that left the shop while the rest

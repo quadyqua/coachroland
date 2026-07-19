@@ -28,7 +28,13 @@ def _engine():
     global _ocr
     if _ocr is None:
         from rapidocr_onnxruntime import RapidOCR
-        _ocr = RapidOCR()
+        try:
+            # DirectML runs the OCR models on the GPU (DirectX 12) — ~4x faster
+            # than CPU and needs no CUDA/cuDNN. Falls back to CPU if DML is
+            # unavailable (e.g. onnxruntime-directml not installed).
+            _ocr = RapidOCR(det_use_dml=True, cls_use_dml=True, rec_use_dml=True)
+        except Exception:
+            _ocr = RapidOCR()
     return _ocr
 
 
@@ -76,8 +82,40 @@ def _median_gap(hp_boxes: list[dict]) -> float:
     return gaps[len(gaps) // 2] or 320.0
 
 
+# UI text that lives in the same right-side region but is NOT a player name. Two detail
+# cards overlay the lobby list: the per-player "Damage Dealt" breakdown (when you click a
+# player) and the unit-detail card (when you select your own unit). Their headers are
+# unmistakable, so when one is up we skip name extraction entirely instead of reading
+# "VS" / "Sell for" / trait labels as opponents. _JUNK_NAME_TOKENS is a backstop for the
+# odd straggler token that slips through on an otherwise-clean lobby frame.
+_JUNK_NAME_TOKENS = {"vs", "sell", "hex", "front", "back", "level", "lvl",
+                     "damage", "dealt", "online", "offline", "mobile", "away"}
+
+
+def _detail_panel_up(boxes: list[dict]) -> bool:
+    """True when a unit/damage DETAIL card is showing instead of the lobby player list."""
+    low = [b["text"].lower() for b in boxes]
+    joined = " ".join(low)
+    if "sell for" in joined or "damage dealt" in joined:
+        return True
+    # the words can land in separate OCR boxes ("Damage" + "Dealt")
+    if any("damage" in t for t in low) and any("dealt" in t for t in low):
+        return True
+    # The unit-detail card lists the champion's TRAITS in this region; the lobby list
+    # never does. Two or more trait names here means a detail card, not the player list.
+    return sum(1 for b in boxes if _trait_match(b["text"])) >= 2
+
+
+def _is_junk_name(t: str) -> bool:
+    return t.strip().lower() in _JUNK_NAME_TOKENS
+
+
 def read_lobby_pil(img: "Image.Image", crop=RIGHT_PANEL) -> dict:
     boxes = _boxes(_crop(img, crop))
+    if _detail_panel_up(boxes):
+        # A unit/damage detail card is overlaying the lobby — not the player list. Return
+        # no players so the caller keeps its last good lobby read instead of label junk.
+        return {"players": [], "next_opponent": None}
     hp_boxes = sorted((b for b in boxes if _is_hp(b["text"])), key=lambda b: b["cy"])
     gap = _median_gap(hp_boxes)
     name_tol = gap * 0.5      # a name shares the row band with its HP
@@ -93,6 +131,8 @@ def read_lobby_pil(img: "Image.Image", crop=RIGHT_PANEL) -> dict:
     def is_name(b):                                # a player-name token, not a champ/junk
         t = b["text"].strip()
         if not (any(c.isalpha() for c in t) and len(t) >= 2) or _roster_match(t):
+            return False
+        if _is_junk_name(t) or _trait_match(t):        # VS/Sell/Hex stragglers + trait labels
             return False
         return not re.match(r"(?i)^(lvl|level)", t)   # floating "Level N!" nameplate, not a name
 
@@ -122,11 +162,20 @@ def read_lobby_pil(img: "Image.Image", crop=RIGHT_PANEL) -> dict:
     # one HP per player, so this stays off and we don't pick up floating UI labels.
     name_count = sum(1 for b in boxes if is_name(b))
     if name_count > len(hp_boxes) + 1:
+        # Cap how many players may share one HP anchor. Double Up teams share HP, but only
+        # in PAIRS — so a box already backing two players means the next attach is a misread
+        # (incomplete HP OCR). Mark that player's HP unknown (None) instead of fabricating a
+        # value shared across 3+ players (the "five players all at 16" bug).
+        box_uses = {id(hp): 1 for hp in hp_boxes}   # each anchored one player in the pass above
         for b in sorted((x for x in boxes if id(x) not in used and is_name(x)),
                         key=lambda b: b["cy"]):
             used.add(id(b))
-            hp = min(hp_boxes, key=lambda h: abs(h["cy"] - b["cy"])) if hp_boxes else None
-            players.append({"name": b["text"], "hp": int(hp["text"]) if hp else None,
+            hp_box = min(hp_boxes, key=lambda h: abs(h["cy"] - b["cy"])) if hp_boxes else None
+            hp_val = None
+            if hp_box is not None and box_uses.get(id(hp_box), 0) < 2:
+                hp_val = int(hp_box["text"])
+                box_uses[id(hp_box)] += 1
+            players.append({"name": b["text"], "hp": hp_val,
                             "unit": nearest_unit(b["cy"]), "stars": None, "is_self": False})
     return {"players": players, "next_opponent": None}
 
@@ -228,6 +277,22 @@ def read_stage_pil(img: "Image.Image", crop=STAGE_REGION) -> dict:
 
 def read_stage(image_path: str, crop=STAGE_REGION) -> dict:
     return read_stage_pil(Image.open(image_path).convert("RGB"), crop)
+
+
+def _valid_stage(s) -> bool:
+    return bool(s) and bool(re.match(r"^[1-9]-[1-9]$", str(s).strip()))
+
+
+def in_game_pil(img: "Image.Image") -> bool:
+    """True when this frame is an actual TFT game (has a valid stage indicator like
+    '4-6'). Guards the readers from treating the client/desktop (friends list, news,
+    clock) as a lobby. Mid-game screens like the Double Up Assist Armory still show a
+    stage, so they correctly count as in-game."""
+    return _valid_stage(read_stage_pil(img).get("stage"))
+
+
+def in_game(image_path: str) -> bool:
+    return in_game_pil(Image.open(image_path).convert("RGB"))
 
 
 # ---- item-choice screen (armory / anvil): which items are offered --------------

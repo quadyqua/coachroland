@@ -4,6 +4,7 @@
 __pycache__/
 *.pyc
 training_frames/
+fixtures/live_capture/
 calib/
 bench_band.png
 benchfind.png
