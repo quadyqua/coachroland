@@ -11,6 +11,14 @@ Reset between games (nothing carries over). Structured data only, never images.
 """
 
 
+def _act(stage):
+    """The act (first) number of a stage string like '4-6' -> 4, else None."""
+    try:
+        return int(str(stage).split("-")[0])
+    except Exception:
+        return None
+
+
 class Ledger:
     def __init__(self):
         self.reset()
@@ -18,6 +26,7 @@ class Ledger:
     def reset(self) -> None:
         self.augments: dict[str, list[str]] = {}   # player name -> augments seen
         self.carries: dict[str, str] = {}          # player name -> their spiked carry
+        self.carry_seen_at: dict[str, str] = {}    # player name -> stage the carry was last read
 
     def note_augments(self, name: str, augs) -> None:
         if not name or not augs:
@@ -27,9 +36,21 @@ class Ledger:
             if a and a not in cur:
                 cur.append(a)
 
-    def note_carry(self, name: str, carry: str) -> None:
+    def note_carry(self, name: str, carry: str, stage: str = None) -> None:
         if name and carry:
             self.carries[name] = carry
+            if stage:
+                self.carry_seen_at[name] = stage
+
+    def stale_reads(self, current_stage) -> list[str]:
+        """Players whose carry read predates 5-costs (read at stage < 5 while it's now >= 5).
+        Their read may be outdated — a 1-star 5-cost carry never shows on the star-up feed,
+        so a re-scout is worth it. Empty until 5-costs matter (stage 5+)."""
+        cur = _act(current_stage)
+        if cur is None or cur < 5:
+            return []
+        return sorted(n for n, seen in self.carry_seen_at.items()
+                      if (_act(seen) or 99) < 5)
 
     def augments_for(self, name: str) -> list[str]:
         return self.augments.get(name, [])

@@ -600,13 +600,14 @@ class CoachRoland:
             f"if the pool dries up (contested, or someone's holding your pieces), you'll both bottom out. "
             f"Stay ready to pivot to {alt}, or concede {carry} to them.", "warn")]
 
-    def scout_prompt(self, players, known=None, next_opponent=None) -> list[dict]:
-        """Nudge you to scout an opponent you have NO read on — prioritizing who you fight
-        next. You do the scouting (click their portrait); we just flag who's worth a look,
-        so Coach can factor their comp into contest + counters. Self-resolves once seen.
+    def scout_prompt(self, players, known=None, next_opponent=None, stale=None) -> list[dict]:
+        """Nudge you to scout an opponent you have NO read on (or a STALE read that predates
+        5-costs) — prioritizing who you fight next. You do the scouting (click their
+        portrait); we just flag who's worth a look. Self-resolves once seen.
         """
         players = players or []
         known = {k.lower() for k in (known or [])}
+        stale = {s.lower() for s in (stale or [])}
 
         def unknown(p):
             n = p.get("name")
@@ -626,6 +627,16 @@ class CoachRoland:
             return [_rec(f"Scout {top['name']} when you get a chance",
                          f"No read on {top['name']} yet ({top.get('hp', '?')} HP). Peek at their board between "
                          f"rounds so their comp feeds into contest + counter advice.", "info")]
+        # Everyone we can see is 'known', but a read taken before 5-costs is unreliable — a
+        # 1-star legendary carry never shows on the star-up feed. Nudge a re-scout.
+        re_stale = [p for p in players if p.get("name") and not p.get("is_self")
+                    and p["name"].lower() in stale]
+        if re_stale:
+            top = max(re_stale, key=lambda p: p.get("hp") or 0)
+            return [_rec(f"Re-scout {top['name']} — their read is stale",
+                         f"You last saw {top['name']}'s comp before 5-costs came in. A 1-star legendary carry "
+                         f"never shows on the star-up feed, so peek at their board again — they may have slotted "
+                         f"a hidden carry.", "info")]
         return []
 
     def hard_switch(self, carry, contested, level, avoid=None) -> list[dict]:

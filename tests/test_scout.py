@@ -42,6 +42,18 @@ def test_excludes_self_and_already_seen():
     assert "LooShiba" not in joined and "Me" not in joined   # seen carry + self are skipped
 
 
+def test_stale_read_prompts_rescout_once_5costs_are_in():
+    from tftwatch.ledger import Ledger
+    led = Ledger()
+    led.note_carry("TheJim", "Pyke", stage="3-2")      # saw their 2-star early
+    assert led.stale_reads("6-2") == ["TheJim"]         # now stage 6 (5-costs in) -> stale
+    assert led.stale_reads("4-5") == []                 # too early -> not stale yet
+    # even though TheJim is 'known', a pre-5-cost read gets a re-scout nudge
+    recs = C.scout_prompt([{"name": "TheJim", "hp": 60, "unit": "Pyke"}],
+                          known={"TheJim"}, stale={"TheJim"})
+    assert any("re-scout thejim" in r["text"].lower() for r in recs)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

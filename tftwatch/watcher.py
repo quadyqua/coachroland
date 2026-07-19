@@ -192,12 +192,12 @@ def _assemble_state(comp_key, my_comp, teammate_comp, partner_name, data, contes
 
 
 def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs, alt_name,
-                  stage=None, level=None, traits=None, rivals=None, scouted=None):
+                  stage=None, level=None, traits=None, rivals=None, scouted=None, stale=None):
     """Deterministic fallback advice (no LLM). Mirrors the brain's coverage cheaply."""
     out = []
     out += coach.level_pacing(stage, level, (my_comp or {}).get("playstyle"))
     out += coach.trait_advice(traits)
-    out += coach.scout_prompt(data.get("players"), scouted, data.get("next_opponent"))
+    out += coach.scout_prompt(data.get("players"), scouted, data.get("next_opponent"), stale=stale)
     if my_comp:
         carry = my_comp.get("carry")
         has_carry = bool(my_comp.get("carries"))
@@ -380,7 +380,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                     coach.observe(data)                        # keep session tracking; output dropped (HP reads too noisy)
                     for p in players:                          # ledger: remember spiked carries
                         if p.get("unit") and p.get("name"):
-                            ledger.note_carry(p["name"], p["unit"])
+                            ledger.note_carry(p["name"], p["unit"], stage=stage_read)
                     contested = ledger.contested_carries()   # accumulated across the game
                     last_contested = contested                # reused by the fast shop path (deny flags)
                     open_list = compguide.open_comps(contested)
@@ -489,7 +489,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                   stage=stage_read, level=(self_read or {}).get("level"),
                                                   traits=traits_read,
                                                   rivals=ledger.players_on((rc or {}).get("carry")),
-                                                  scouted=set(ledger.carries))
+                                                  scouted=set(ledger.carries),
+                                                  stale=set(ledger.stale_reads(stage_read)))
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here
