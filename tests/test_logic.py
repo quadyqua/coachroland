@@ -109,6 +109,11 @@ def test_comp_commit_needs_a_clear_signal():
     # 3 of a defining trait -> a clear signal even amid other 2s, commit
     three = [{"name": "Space Groove", "count": 3}, {"name": "Bastion", "count": 2}]
     assert compguide.suggest_for_traits(three, [], current_key=None) is not None
+    # a tank shell: 4 Bastion (a FRONTLINE trait no comp is DEFINED by) + no carry line -> stay
+    # flex. Must NOT commit a carry comp that merely splashes Bastion (the over-commit QA caught).
+    shell = [{"name": "Bastion", "count": 4}, {"name": "Vanguard", "count": 2},
+             {"name": "Space Groove", "count": 2}]
+    assert compguide.suggest_for_traits(shell, [], current_key=None) is None
 
 
 def test_plan_advice_is_tagged_out_of_the_live_feed():

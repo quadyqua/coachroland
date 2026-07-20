@@ -138,8 +138,9 @@ def comps():
     # open + high tier first; then by rivals asc, tier, name
     items.sort(key=lambda c: (c["rivals"], _TIER_ORDER.get(c["tier"], 9), c["name"] or ""))
     contested = [c.lower() for c in (STATE.get("contested") or [])]
-    recommended = [c["name"] for c in items
-                   if c["open"] and _TIER_ORDER.get(c["tier"], 9) <= 1][:4]
+    # only suggest lines to LOCK while you're still flexing — once you've committed, hush.
+    recommended = [] if CONTROL.get("comp_key") else [
+        c["name"] for c in items if c["open"] and _TIER_ORDER.get(c["tier"], 9) <= 1][:4]
     return jsonify({"comps": items, "current": CONTROL.get("comp_key"),
                     "recommended": recommended, "contested": contested})
 

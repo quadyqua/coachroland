@@ -477,7 +477,12 @@ def suggest_for_traits(active_traits, contested=None, current_key=None):
     if not commit:                       # nothing clear enough to commit to -> stay flex
         return COMPS.get(current_key) if current_key in COMPS else None
 
-    # 1. prefer a comp whose primary/defining trait IS your strongest clear trait
+    # Commit only to a comp whose DEFINING trait (traits[0]) IS your strongest clear trait.
+    # We deliberately do NOT fall back to "any comp that merely uses your trait somewhere" —
+    # that over-commits: 4 Bastion (a tank shell with no carry) would match a carry comp that
+    # happens to splash Bastion (e.g. Xayah Stargazer) and wrongly tell you to build Xayah.
+    # A frontline trait being highest = you're flexing, not committed. Stay flex until your
+    # comp's OWN defining trait leads.
     for t in commit:
         tn = (t.get("name") or "").lower()
         if not tn:
@@ -487,11 +492,4 @@ def suggest_for_traits(active_traits, contested=None, current_key=None):
                 and c.get("carry", "").lower() not in contested]
         if hits:
             return sorted(hits, key=lambda c: _TIER_RANK.get(c.get("tier"), 9))[0]
-
-    # 2. fallback: any uncontested comp that uses one of your strong (3+) traits at all
-    for t in commit:
-        tn = (t.get("name") or "").lower()
-        for c in sorted(COMPS.values(), key=lambda c: _TIER_RANK.get(c.get("tier"), 9)):
-            if tn in [x.lower() for x in c.get("traits", [])] and c.get("carry", "").lower() not in contested:
-                return c
-    return None
+    return COMPS.get(current_key) if current_key in COMPS else None

@@ -18,15 +18,22 @@ board — a missed scout only leaks a trait read; a false scout could hide real 
 
 
 def comp_trait_names(comp) -> set:
-    """Lowercase trait names a committed comp FIELDS — its declared traits AND every trait its
-    board units carry. Rich on purpose: your board drifts (you flex a frontline, a trait falls
-    off), so a one-trait anchor false-flags your own board. The full fielded set is stable."""
+    """Lowercase CORE trait names a committed comp fields — its declared traits, plus traits
+    carried by 2+ of its board units. We drop one-unit splashes (e.g. a lone Stargazer body on
+    a Space Groove board): a rich all-board anchor let opponents that merely share an incidental
+    trait pass as your own board (missed scouts). Declared + repeated-board traits is the stable
+    'this is my comp' set — broad enough to survive board drift, tight enough to spot a foreign
+    board."""
+    from collections import Counter
+
     from . import cdragon
     names = {(t or "").lower() for t in ((comp or {}).get("traits") or []) if t}
+    unit_traits = Counter()
     for u in ((comp or {}).get("board") or []) + ((comp or {}).get("early_units") or []):
         for t in cdragon.champ_traits(u):
             if t:
-                names.add(t.lower())
+                unit_traits[t.lower()] += 1
+    names |= {t for t, n in unit_traits.items() if n >= 2}   # core (repeated) traits only
     return names
 
 
