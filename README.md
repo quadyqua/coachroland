@@ -67,8 +67,10 @@ There are two ways to install. **Most people want the first one.**
 1. On this GitHub page, click the green **`< > Code`** button, then **Download ZIP**.
 2. Find the downloaded ZIP (usually in **Downloads**), right-click it → **Extract All…** →
    put the folder somewhere easy like your **Desktop**.
-3. Install **Python 3.12** from [python.org](https://www.python.org/downloads/). On the very
-   first install screen, **tick the box "Add python.exe to PATH"** — this matters. Then finish.
+3. Install **Python 3.12** from [python.org](https://www.python.org/downloads/release/python-3129/).
+   On the very first install screen, **tick the box "Add python.exe to PATH"** — this matters. Then
+   finish. (Use **3.12**, not 3.13/3.14 — the free OCR engine doesn't support 3.13+ yet. `setup.bat`
+   will pick a 3.10–3.12 install automatically if you have several.)
 4. Open the extracted folder and **double-click `setup.bat`**. It installs everything and
    downloads the champion data (a few minutes the first time). Wait until it says
    **"Setup complete"**, then close that window.
@@ -83,7 +85,8 @@ That's the whole thing — two double-clicks after Python is installed.
 #### Manual — the terminal way (Windows/macOS/Linux)
 
 **1. Install the prerequisites (Windows 10/11):**
-- **Python 3.12+** — from [python.org](https://www.python.org/downloads/). On the first
+- **Python 3.10–3.12** (NOT 3.13+ — the OCR engine `rapidocr-onnxruntime` requires `<3.13`) —
+  from [python.org](https://www.python.org/downloads/release/python-3129/). On the first
   installer screen, tick **"Add python.exe to PATH"**. Verify in a new terminal: `python --version`.
 - **Git** — from [git-scm.com](https://git-scm.com/download/win). Verify: `git --version`.
 

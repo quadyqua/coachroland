@@ -12,16 +12,22 @@ echo   Coach Roland - one-time setup
 echo ============================================
 echo.
 
-REM --- Find Python (prefer the 'py' launcher, fall back to 'python') ---
+REM --- Find a SUPPORTED Python (3.10-3.12). The OCR engine (rapidocr-onnxruntime)
+REM     does not support Python 3.13+, so we must NOT grab the newest 'py -3'. ---
 set "PY="
-py -3 --version >nul 2>&1 && set "PY=py -3"
-if not defined PY ( python --version >nul 2>&1 && set "PY=python" )
+py -3.12 --version >nul 2>&1 && set "PY=py -3.12"
+if not defined PY ( py -3.11 --version >nul 2>&1 && set "PY=py -3.11" )
+if not defined PY ( py -3.10 --version >nul 2>&1 && set "PY=py -3.10" )
+if not defined PY ( python -c "import sys; sys.exit(0 if (3,10)<=sys.version_info[:2]<=(3,12) else 1)" 2>nul && set "PY=python" )
 if not defined PY (
-  echo [X] Python was not found on this computer.
+  echo [X] A supported Python was not found (need 3.10, 3.11, or 3.12).
   echo.
-  echo     1. Install Python 3.12 from https://www.python.org/downloads/
-  echo     2. IMPORTANT: on the FIRST install screen, tick
-  echo        "Add python.exe to PATH".
+  echo     The free OCR engine does NOT support Python 3.13 or newer yet, so
+  echo     having only a newer Python installed will not work.
+  echo.
+  echo     1. Install Python 3.12 from:
+  echo          https://www.python.org/downloads/release/python-3129/
+  echo     2. On the FIRST install screen, tick "Add python.exe to PATH".
   echo     3. Then double-click this setup file again.
   echo.
   pause
@@ -33,7 +39,8 @@ echo Found Python:
 echo.
 
 echo [1 of 3] Creating a private workspace (.venv)...
-%PY% -m venv .venv
+REM --clear rebuilds cleanly if a previous run made the workspace with the wrong Python.
+%PY% -m venv --clear .venv
 if not exist ".venv\Scripts\python.exe" (
   echo [X] Could not create the workspace. See any message above.
   pause
