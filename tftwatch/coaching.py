@@ -30,11 +30,13 @@ def _comp_dicts(c):
 
 def _rules_advice(coach, my_comp, my_plan, teammate_comp, data, contested, augs, alt_name,
                   stage=None, level=None, traits=None, rivals=None, scouted=None, stale=None,
-                  hp=None, gold=None, ledger=None, last_scout=None, hit_report=None):
+                  hp=None, gold=None, ledger=None, last_scout=None, hit_report=None,
+                  bench_items=None):
     """Deterministic fallback advice (no LLM). Mirrors the brain's coverage cheaply."""
     out = []
     out += coach.level_pacing(stage, level, (my_comp or {}).get("playstyle"))
     out += coach.trait_advice(traits)
+    out += coach.bench_items_advice(bench_items, comp=my_comp, stage=stage)   # hoarding items -> slam
     out += coach.stabilize(hp, level, stage, gold, carry=(my_comp or {}).get("carry"),
                            early=(my_plan or {}).get("early_units"))
     # A scouted COMP counts as "known" too (not just a carry off the star-up feed), so we

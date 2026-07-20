@@ -424,6 +424,15 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             print(f"  (board read failed: {e})")
                     owned_units = owned_units or None
 
+                    # Item-bench occupancy (free, local): how many LOOSE items you're hoarding
+                    # instead of slamming onto units -> the "SLAM them" nudge.
+                    bench_items = None
+                    if local_eyes:
+                        try:
+                            bench_items = localvision.read_item_bench_pil(full).get("items_on_bench")
+                        except Exception as e:
+                            print(f"  (item-bench read failed: {e})")
+
                     # A live God/augment pick on screen -> advise immediately (skip throttle).
                     offered = None
                     if offers:
@@ -497,7 +506,7 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                                                   stale=set(ledger.stale_reads(stage_read)),
                                                   hp=my_hp, gold=(self_read or {}).get("gold"),
                                                   ledger=ledger, last_scout=last_scout,
-                                                  hit_report=hit_report)
+                                                  hit_report=hit_report, bench_items=bench_items)
 
                     recs = strategic        # brain (or rules) only — no noisy per-read HP alerts
                     # Free God-choice pick: the brain handles offers itself, so only inject here

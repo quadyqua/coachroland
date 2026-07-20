@@ -91,6 +91,15 @@ def test_trait_breakpoints_and_advice():
     assert coach.trait_advice([]) == []
 
 
+def test_bench_items_slam_nudge():
+    sg = compguide.comp_detail("space_groove")
+    assert coach.bench_items_advice(None) == [] and coach.bench_items_advice(0) == []
+    assert coach.bench_items_advice(2, sg) == []                 # 1-2 in transit -> quiet
+    hoard = coach.bench_items_advice(5, sg)                      # hoarding -> loud slam nudge
+    assert hoard and "slam" in hoard[0]["text"].lower() and "5 items" in hoard[0]["text"]
+    assert "nami" in hoard[0]["why"].lower()                    # points toward the carry's build
+
+
 def test_slam_advice_early_for_late_carry_only():
     sg = compguide.comp_detail("space_groove")               # Nami, a 4-cost (late carry)
     early = coach.slam_advice(sg, stage="2-5")

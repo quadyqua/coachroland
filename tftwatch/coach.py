@@ -993,6 +993,25 @@ class CoachRoland:
                      f"selling a unit returns its items, so you move them onto {carry} for free when you hit it. "
                      f"Just build toward {carry}'s items, not off-build ones.", "buy", kind="plan")]
 
+    def bench_items_advice(self, n_items, comp=None, stage=None) -> list[dict]:
+        """Data-driven SLAM nudge from the item-bench occupancy read: if you're sitting on a
+        pile of loose items instead of putting them on units, you lose fights and HP. Fires at
+        3+ loose items (1-2 in transit is normal). This is the reliable, always-on version of
+        slam_advice — it reacts to what you're ACTUALLY holding, at any stage."""
+        if not n_items or n_items < 3:
+            return []
+        carry = (comp or {}).get("carry")
+        items = ", ".join((comp or {}).get("carry_items") or [])
+        toward = (f" Combine toward {carry}'s build ({items}) and put them on a strong body — "
+                  f"move them onto {carry} later (you never lose items)." if carry and items
+                  else " Combine them and put them on your strongest units.")
+        return [_rec(
+            f"You've got {n_items} items on your bench — SLAM them",
+            f"{n_items} loose items are sitting on your bench doing nothing while you take damage. Items win "
+            f"fights only when they're ON units.{toward} Don't hoard components waiting for the perfect build "
+            f"— staying healthy matters more.",
+            "warn")]
+
     def slam_advice(self, comp, stage=None, early=None) -> list[dict]:
         """Early-game 'SLAM your items' — the habit beginners miss. Before your carry is
         online you should combine components into your carry's items and put them on a strong

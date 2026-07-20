@@ -221,6 +221,36 @@ def read_self(image_path: str, crop=SELF_REGION) -> dict:
     return read_self_pil(Image.open(image_path).convert("RGB"), crop)
 
 
+# ---- item bench: how many LOOSE items you're holding (far-left icon column) ------
+# We can't reliably recognize WHICH item (flat CDragon assets score at noise vs the rendered
+# bench icon, same as champion tiles), but we CAN count occupied slots dead-reliably: a filled
+# slot's pixel variance is high (~50-73), an empty black slot low (~15). That alone powers the
+# "you're hoarding components — SLAM them" nudge that matters most. Region calibrated on 2560x1440.
+ITEM_BENCH_REGION = (0.007, 0.252, 0.030, 0.645)
+ITEM_BENCH_SLOTS = 9
+_ITEM_SLOT_STD = 32.0            # std above this = a slot holds an item; below = empty
+
+
+def read_item_bench_pil(img: "Image.Image", crop=ITEM_BENCH_REGION,
+                        slots=ITEM_BENCH_SLOTS) -> dict:
+    """{items_on_bench: N} — count of LOOSE items sitting on your item bench (not on units).
+    By occupancy (pixel variance per slot), not recognition — reliable, no icon match."""
+    w, h = img.size
+    l, t, r, b = crop
+    band = img.crop((int(w * l), int(h * t), int(w * r), int(h * b))).convert("RGB")
+    sh = band.height / slots
+    n = 0
+    for i in range(slots):
+        cell = band.crop((0, int(i * sh), band.width, int((i + 1) * sh)))
+        if float(np.asarray(cell, dtype=np.float32).std()) > _ITEM_SLOT_STD:
+            n += 1
+    return {"items_on_bench": n}
+
+
+def read_item_bench(image_path: str, crop=ITEM_BENCH_REGION, slots=ITEM_BENCH_SLOTS) -> dict:
+    return read_item_bench_pil(Image.open(image_path).convert("RGB"), crop, slots)
+
+
 # ---- left trait panel: what comp you're actually building (anti-random read) --
 TRAIT_REGION = (0.0, 0.13, 0.135, 0.58)
 
