@@ -28,11 +28,16 @@ _GOD_PREF = {
 }
 
 
-def _rec(text, why, severity="info", stat=None, priority=0, timer=None):
+def _rec(text, why, severity="info", stat=None, priority=0, timer=None, kind="live"):
     """priority: higher pins to the top (see ACTIVE_CHOICE). timer: seconds on the
-    clock for a time-boxed choice, surfaced as a countdown badge (None = no clock)."""
+    clock for a time-boxed choice, surfaced as a countdown badge (None = no clock).
+
+    kind: "live" = a situational call for the "Coach says" feed (scout, counter, roll,
+    stabilize, contest); "plan" = static build/comp info that belongs in the "Your comp"
+    panel and must NOT spam the live feed every frame (items, early bridge, shopping list).
+    """
     return {"text": text, "why": why, "severity": severity, "stat": stat,
-            "priority": priority, "timer": timer}
+            "priority": priority, "timer": timer, "kind": kind}
 
 
 # Augments whose value is generic/econ/combat transfer when you pivot; ones named
@@ -307,7 +312,7 @@ class CoachRoland:
             f"that mostly comes online at level 8. You won't survive waiting for it — until then, hold and "
             f"play {holders}. {plan.get('level_plan', 'Slam early items, stay healthy, then roll at 8.')}",
             "buy",
-            stat=plan.get("source"))]
+            stat=plan.get("source"), kind="plan")]
 
     def teammate_buy(self, partner: str, unit: str, copies_left: int = 1) -> dict:
         """Alert to buy a unit for your partner via the Teamwork Cannon."""
@@ -340,13 +345,13 @@ class CoachRoland:
                 f"Build {carry}'s items: {items}",
                 f"{target} Best build is {items} — collect the components from carousels and item "
                 f"drops and slam toward it.",
-                "buy", stat=comp.get("source"))]
+                "buy", stat=comp.get("source"), kind="plan")]
         flex = ", ".join(comp.get("flexible_components", comp.get("carry_components", [])))
         return [_rec(
             f"Hold {carry}'s items — they're contested",
             f"{carry} is contested, so you may not hit. DON'T lock their items yet. Build flexible "
             f"components ({flex} slot onto many carries) and stay ready to move them onto {alt} if you pivot.",
-            "warn")]
+            "warn", kind="plan")]
 
     def contest_advice(self, unit: str, n_teams: int, partner: str = None) -> list[dict]:
         """Heavy contest -> don't roll to gold it; deny + hold within your team (bench-aware)."""
@@ -881,10 +886,10 @@ class CoachRoland:
         if not need:
             return [_rec(f"Core board complete ({len(got)}/{len(board)})",
                          f"You've got every core unit for {name} — now focus on upgrades (2★/3★), "
-                         f"items, and positioning.", "info")]
+                         f"items, and positioning.", "info", kind="plan")]
         return [_rec(f"Comp progress {len(got)}/{len(board)} — hunt {', '.join(need[:4])}",
                      f"For {name}: have {', '.join(got) or 'none yet'}. Still need {', '.join(need)}. "
-                     f"Prioritize these in shops and rolls.", "info")]
+                     f"Prioritize these in shops and rolls.", "info", kind="plan")]
 
     def trait_advice(self, traits, max_recs=2) -> list[dict]:
         """Flag active traits that are ONE unit from their next breakpoint — a power spike
@@ -902,7 +907,7 @@ class CoachRoland:
         near.sort(key=lambda x: -x[0])                       # bigger breakpoints first
         return [_rec(f"1 unit from {name} {nxt}",
                      f"You have {count} {name}; one more {name} unit hits the {nxt} breakpoint. "
-                     f"If one fits your board, it's a cheap power spike.", "info")
+                     f"If one fits your board, it's a cheap power spike.", "info", kind="plan")
                 for nxt, name, count in near[:max_recs]]
 
     def level_pacing(self, stage, level, playstyle=None) -> list[dict]:
@@ -926,9 +931,11 @@ class CoachRoland:
         if level > tgt:
             return [_rec(f"Ahead on level ({level} at {stage})",
                          f"Above the {tgt} curve for {stage} — you can roll harder or bank econ; just don't "
-                         f"out-level your board.", "info")]
+                         f"out-level your board.", "info", kind="plan")]
+        # On curve: still reported (a status line), but kind="plan" keeps it OUT of the live feed
+        # so "you're on curve" doesn't repeat every frame and bury the actionable calls.
         return [_rec(f"On the level curve ({level} at {stage})",
-                     f"Right on pace ({tgt}) for {stage}. Keep econ and hit your spikes.", "info")]
+                     f"Right on pace ({tgt}) for {stage}. Keep econ and hit your spikes.", "info", kind="plan")]
 
     def item_choice(self, offered, comp) -> list[dict]:
         """When you're offered items (armory/anvil), flag which belong on your carry.
@@ -978,12 +985,12 @@ class CoachRoland:
         if reroll:
             return [_rec(f"Itemize {carry} — your carry",
                          f"{carry} is your reroll carry, so they hold the items. Slam {items} onto {carry} "
-                         f"as you collect the pieces.", "buy")]
+                         f"as you collect the pieces.", "buy", kind="plan")]
         cost_txt = f"a {cost}-cost" if cost else "a late-game unit"
         return [_rec(f"Hold items for {carry} — don't itemize a holder",
                      f"{carry} is your carry ({cost_txt}) and comes online late. Build toward {items}, but "
                      f"HOLD the items — don't slam them onto an early 1-cost you'll sell. Put them on {carry} "
-                     f"when you hit it.", "warn")]
+                     f"when you hit it.", "warn", kind="plan")]
 
     # ---- formatting ----------------------------------------------------------
     def say(self, recs: list[dict]) -> str:

@@ -176,7 +176,8 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
           comp_key: str = None, partner_name: str = None, partner_comp_key: str = None,
           board: bool = False, augments: bool = False, shop: bool = False,
           offers: bool = False, items: bool = False, use_brain: bool = False,
-          brain_gap: float = 18.0, local_eyes: bool = True, save_frames: int = 0) -> None:
+          brain_gap: float = 18.0, local_eyes: bool = True, save_frames: int = 0,
+          control: dict = None) -> None:
     """Watch the panel; read + coach when it changes and settles.
 
     use_brain — run the LLM reasoning brain (auto-off if no OPENAI_API_KEY); brain_gap
@@ -231,6 +232,17 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                 full = _grab_full(sct, monitor)
                 sig = _signature(full)
                 now = time.time()
+
+                # Live comp override from the dashboard picker: when you declare your line
+                # (or switch back to auto), lock it immediately instead of guessing from traits.
+                if control is not None:
+                    ck = control.get("comp_key")
+                    if ck != comp_key:
+                        comp_key = ck
+                        my_comp, my_plan, teammate_comp = _comp_context(
+                            comp_key, partner_name, partner_comp_key)
+                        last_comp = compguide.comp_detail(comp_key) if comp_key else None
+                        pending_key, pending_hits = None, 0
 
                 if save_frames and (now - last_save) >= save_frames:   # training-data capture
                     try:

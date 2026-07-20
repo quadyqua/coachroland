@@ -11,7 +11,7 @@ re-renders. Every recommendation has a hover tooltip explaining WHY (+ a stat sl
 import argparse
 import threading
 
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 from dotenv import load_dotenv
 
 from . import compguide
@@ -23,6 +23,10 @@ load_dotenv()
 STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
          "shop": [], "econ": None, "items": [], "bench": [], "stage": None,
          "contested": [], "traits": [], "gold": None, "level": None}
+
+# Live control shared with the watcher thread. The comp picker in the UI writes comp_key
+# here; the watcher reads it each loop and locks that line (None = auto-detect from traits).
+CONTROL = {"comp_key": None}
 
 _SAMPLE = {
     "ts": "demo", "event": "read",
@@ -113,6 +117,23 @@ def state():
     return jsonify(STATE)
 
 
+@app.route("/comps")
+def comps():
+    """The list for the comp picker: your declarable lines, tier-sorted, + Auto-detect."""
+    items = sorted(({"key": k, "name": v.get("name"), "carry": v.get("carry"),
+                     "playstyle": v.get("playstyle")} for k, v in compguide.COMPS.items()),
+                   key=lambda c: (c["name"] or ""))
+    return jsonify({"comps": items, "current": CONTROL.get("comp_key")})
+
+
+@app.route("/set-comp")
+def set_comp():
+    """Lock the coach to a declared comp (?key=...), or ?key= (empty) to auto-detect."""
+    key = (request.args.get("key") or "").strip() or None
+    CONTROL["comp_key"] = key if (key in compguide.COMPS) else None
+    return jsonify({"ok": True, "comp_key": CONTROL["comp_key"]})
+
+
 @app.route("/")
 def index():
     return Response(INDEX_HTML, mimetype="text/html")
@@ -163,12 +184,13 @@ def main() -> None:
         print("Demo mode — open http://127.0.0.1:8765  (sample data, no game/API)")
     else:
         from .watcher import watch
+        CONTROL["comp_key"] = args.comp if (args.comp in compguide.COMPS) else None
         threading.Thread(
             target=lambda: watch(on_update=_on_update, comp_key=args.comp,
                                  partner_name=args.partner, partner_comp_key=args.partner_comp,
                                  board=args.board, augments=args.augments, shop=args.shop,
                                  items=args.items, offers=args.offers, use_brain=False,
-                                 save_frames=args.save_frames),  # live dashboard = free rules coach
+                                 save_frames=args.save_frames, control=CONTROL),  # picker-driven comp
             daemon=True).start()
         print("Live — open http://127.0.0.1:8765  (drag to monitor 2, fullscreen). Ctrl+C to stop.")
     app.run(host="127.0.0.1", port=8765, debug=False)
@@ -229,6 +251,8 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .debug .miss{color:var(--danger);}
 /* Your Comp panel — the "what am I building" board. */
 .compcard{background:#23242a;border:1px solid #3a3a44;}
+#comppick{background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:8px;
+  padding:6px 10px;font:13px "Segoe UI",system-ui,sans-serif;cursor:pointer;max-width:60%;}
 .compname{font-size:22px;font-weight:700;color:#e7d6e7;}
 .compname .ps{font-size:12px;font-weight:600;color:var(--mut);margin-left:8px;text-transform:uppercase;letter-spacing:.05em;}
 .compsub{font-size:13px;color:var(--mut);margin:3px 0 11px;}
@@ -269,8 +293,12 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
   <div class="live"><span class="dot"></span><span id="status">live</span></div>
 </div>
 
-<div class="card compcard"><h2>Your comp · what you're building</h2>
-  <div id="comp"><div class="empty">No comp locked yet — Coach Roland will commit to one.</div></div></div>
+<div class="card compcard">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
+    <h2 style="margin:0">Your comp · what you're building</h2>
+    <select id="comppick" title="Lock your line so the coach stops guessing"><option value="">Auto-detect</option></select>
+  </div>
+  <div id="comp"><div class="empty">No comp locked yet — pick your line above, or Coach Roland will commit to one once your board is clear.</div></div></div>
 
 <div class="card"><h2>Your shop <span id="shopmeta" class="shopmeta"></span></h2>
   <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div>
@@ -411,8 +439,11 @@ function render(s){
   document.getElementById("sub").textContent =
     (s.event==="game_over"?"game over — session cleared":(s.ts?("updated "+s.ts):"waiting"));
   var adv=document.getElementById("advice");
-  // time-boxed choices pinned to the top; everything else keeps its order.
-  var advice=(s.advice||[]).slice().sort(function(a,b){return (b.priority||0)-(a.priority||0);});
+  // The "Coach says" feed is LIVE calls only (scout, counter, roll, stabilize, contest).
+  // "plan" advice (build items, early bridge, shopping list) is static build info already
+  // shown in the comp panel — keeping it out of the feed stops it burying the live calls.
+  var advice=(s.advice||[]).filter(function(a){return (a.kind||'live')!=='plan';})
+    .slice().sort(function(a,b){return (b.priority||0)-(a.priority||0);});
   adv.innerHTML=advice.length?advice.map(recCard).join("")
     :'<div class="empty">No new threats — hold steady.</div>';
 
@@ -433,12 +464,22 @@ function render(s){
   var pos=document.getElementById("pos");
   if(s.positioning&&s.positioning.length){pos.innerHTML=s.positioning.map(recCard).join("");}
 }
+function loadComps(){
+  fetch("/comps").then(function(r){return r.json();}).then(function(d){
+    var sel=document.getElementById("comppick"); if(!sel) return;
+    sel.innerHTML='<option value="">Auto-detect (let it guess)</option>'+
+      (d.comps||[]).map(function(c){
+        return '<option value="'+c.key+'">'+c.name+(c.playstyle?' · '+c.playstyle:'')+'</option>';}).join("");
+    if(d.current) sel.value=d.current;
+    sel.onchange=function(){ fetch("/set-comp?key="+encodeURIComponent(sel.value)); };
+  }).catch(function(){});
+}
 async function tick(){
   try{var r=await fetch("/state");render(await r.json());
       document.getElementById("status").textContent="live";}
   catch(e){document.getElementById("status").textContent="offline";}
 }
-tick();setInterval(tick,2000);
+loadComps();tick();setInterval(tick,2000);
 </script>
 </body></html>"""
 

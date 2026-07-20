@@ -97,6 +97,30 @@ def test_level_pacing():
     assert coach.level_pacing(None, 5, "flex") == []
 
 
+def test_comp_commit_needs_a_clear_signal():
+    """The 'it locked Nami off 2 Space Groove' fix: only commit on a clear line."""
+    # four traits TIED at 2 = a flex board with no line -> DON'T lock a comp (the real bug)
+    tie = [{"name": "Space Groove", "count": 2}, {"name": "Bastion", "count": 2},
+           {"name": "Vanguard", "count": 2}, {"name": "Anima", "count": 2}]
+    assert compguide.suggest_for_traits(tie, [], current_key=None) is None
+    # a single UNAMBIGUOUS trait at 2 (Primordian opener) -> a real early line, commit
+    one = [{"name": "Primordian", "count": 2}, {"name": "Rogue", "count": 1}]
+    assert compguide.suggest_for_traits(one, [], current_key=None) is not None
+    # 3 of a defining trait -> a clear signal even amid other 2s, commit
+    three = [{"name": "Space Groove", "count": 3}, {"name": "Bastion", "count": 2}]
+    assert compguide.suggest_for_traits(three, [], current_key=None) is not None
+
+
+def test_plan_advice_is_tagged_out_of_the_live_feed():
+    """Build/comp advice is 'plan' (shown in the comp panel), not 'live' feed spam."""
+    comp = compguide.comp_detail("primordian_jinx")
+    plan = coach.item_holder_advice(comp) + coach.early_game(comp, stage="2-3")
+    assert plan and all(r.get("kind") == "plan" for r in plan)
+    # a live call (scout nudge) stays in the feed
+    live = coach.scout_prompt([{"name": "X", "hp": 60}], known=set())
+    assert live and all(r.get("kind", "live") == "live" for r in live)
+
+
 def test_postgame_review_summary():
     from tftwatch import review
     part = {

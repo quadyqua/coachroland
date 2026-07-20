@@ -461,11 +461,24 @@ def suggest_for_traits(active_traits, contested=None, current_key=None):
                 and cur_count + 1 >= top_count):     # still your line (within 1 of the top) -> stay
             return cur
 
-    if not strongest:                    # no trait at a breakpoint yet -> don't (re)pick a comp
+    # NEW commitments need a CLEAR signal, not a lone breakpoint. The real bug was committing a
+    # whole comp + item plan when four traits were tied at 2 (Space Groove/Bastion/Vanguard/Anima
+    # = a flex board with no line) — it locked Nami off that. Commit only when there's a clear
+    # strongest trait: 3+, OR a single UNAMBIGUOUS trait at 2 (a Primordian-heavy opener). Several
+    # traits tied at 2 = flex, stay uncommitted. Stickiness above still holds an EXISTING line.
+    top = strongest[0].get("count") or 0
+    n_top = sum(1 for t in strongest if (t.get("count") or 0) == top)
+    if top >= 3:
+        commit = [t for t in strongest if (t.get("count") or 0) >= 3]
+    elif top == 2 and n_top == 1:
+        commit = [strongest[0]]          # one clear defining trait at 2 -> a real early line
+    else:
+        commit = []                      # tie at 2 (flex) -> don't lock a comp yet
+    if not commit:                       # nothing clear enough to commit to -> stay flex
         return COMPS.get(current_key) if current_key in COMPS else None
 
-    # 1. prefer a comp whose primary/defining trait IS your strongest trait
-    for t in strongest:
+    # 1. prefer a comp whose primary/defining trait IS your strongest clear trait
+    for t in commit:
         tn = (t.get("name") or "").lower()
         if not tn:
             continue
@@ -475,8 +488,8 @@ def suggest_for_traits(active_traits, contested=None, current_key=None):
         if hits:
             return sorted(hits, key=lambda c: _TIER_RANK.get(c.get("tier"), 9))[0]
 
-    # 2. fallback: any uncontested comp that uses one of your strong traits at all
-    for t in strongest:
+    # 2. fallback: any uncontested comp that uses one of your strong (3+) traits at all
+    for t in commit:
         tn = (t.get("name") or "").lower()
         for c in sorted(COMPS.values(), key=lambda c: _TIER_RANK.get(c.get("tier"), 9)):
             if tn in [x.lower() for x in c.get("traits", [])] and c.get("carry", "").lower() not in contested:
