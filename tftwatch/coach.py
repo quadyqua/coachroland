@@ -987,10 +987,42 @@ class CoachRoland:
                          f"{carry} is your reroll carry, so they hold the items. Slam {items} onto {carry} "
                          f"as you collect the pieces.", "buy", kind="plan")]
         cost_txt = f"a {cost}-cost" if cost else "a late-game unit"
-        return [_rec(f"Hold items for {carry} — don't itemize a holder",
-                     f"{carry} is your carry ({cost_txt}) and comes online late. Build toward {items}, but "
-                     f"HOLD the items — don't slam them onto an early 1-cost you'll sell. Put them on {carry} "
-                     f"when you hit it.", "warn", kind="plan")]
+        return [_rec(f"{carry}'s items ({cost_txt}) — slam early, move later",
+                     f"{carry} comes online late, but DON'T sit on loose components waiting for it — that "
+                     f"loses fights. Combine them toward {items} and slam them on a strong body you have now; "
+                     f"selling a unit returns its items, so you move them onto {carry} for free when you hit it. "
+                     f"Just build toward {carry}'s items, not off-build ones.", "buy", kind="plan")]
+
+    def slam_advice(self, comp, stage=None, early=None) -> list[dict]:
+        """Early-game 'SLAM your items' — the habit beginners miss. Before your carry is
+        online you should combine components into your carry's items and put them on a strong
+        early body to win fights and hold HP, then move them onto the real carry later (selling
+        a unit drops its items back, so there's no cost). Fires stage 2-3 only, and only for a
+        carry that comes online LATE (a reroll carry already holds its own items)."""
+        if not comp:
+            return []
+        try:
+            act = int(str(stage).split("-")[0]) if stage else None
+        except Exception:
+            act = None
+        if act is None or act > 3:                    # only the slam window (before your carry)
+            return []
+        carry = comp.get("carry")
+        items = comp.get("carry_items") or []
+        if not carry or carry.lower() == "flex" or not items:
+            return []
+        cost = comp.get("carry_cost") or cdragon.cost_of(carry)
+        if cost is not None and cost <= 2:            # reroll carry itemizes itself -> no temp holder
+            return []
+        early = ", ".join((comp.get("early_units") or early or [])[:3]) or "a strong early body"
+        item_txt = ", ".join(items[:3])
+        return [_rec(
+            "Slam your items now — don't sit on components",
+            f"You won't have {carry} yet, but holding loose components bleeds you out. Combine them toward "
+            f"{carry}'s build ({item_txt}) and slam them on a strong body you already have ({early}) to win "
+            f"fights now. When you hit {carry}, sell/move to shift the items over — you never lose them, so "
+            f"there's no risk. (Put AD items on an AD unit, AP on AP.)",
+            "buy")]
 
     # ---- formatting ----------------------------------------------------------
     def say(self, recs: list[dict]) -> str:

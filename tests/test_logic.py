@@ -69,7 +69,8 @@ def test_item_choice_matches_carry_components():
 def test_item_holder_hold_vs_slam():
     fast = coach.item_holder_advice(compguide.comp_detail("dark_star_jhin"))[0]["text"]
     reroll = coach.item_holder_advice(compguide.comp_detail("samira_reroll"))[0]["text"]
-    assert "Hold" in fast and "Itemize" in reroll
+    # late carry -> slam-early-and-move guidance (not the old "hold forever" trap); reroll -> itemize
+    assert "slam early" in fast.lower() and "Itemize" in reroll
 
 
 def test_reroll_advice_is_stage_aware():
@@ -88,6 +89,16 @@ def test_trait_breakpoints_and_advice():
     assert "Bastion 2" in coach.trait_advice([{"name": "Bastion", "count": 1}])[0]["text"]
     assert coach.trait_advice([{"name": "Bastion", "count": 2}]) == []
     assert coach.trait_advice([]) == []
+
+
+def test_slam_advice_early_for_late_carry_only():
+    sg = compguide.comp_detail("space_groove")               # Nami, a 4-cost (late carry)
+    early = coach.slam_advice(sg, stage="2-5")
+    assert early and "slam your items" in early[0]["text"].lower()
+    assert "nami" in early[0]["why"].lower()                 # names the carry you're building toward
+    assert coach.slam_advice(sg, stage="4-2") == []          # too late — your carry should be online
+    rr = compguide.comp_detail("nova_reroll")                # Caitlyn, a 1-cost reroll carry
+    assert coach.slam_advice(rr, stage="2-5") == []          # reroll itemizes itself, no temp holder
 
 
 def test_level_pacing():
