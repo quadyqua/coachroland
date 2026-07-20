@@ -530,13 +530,20 @@ def watch(poll: float = 0.5, settle: float = 0.4, min_gap: float = 1.5, shop_gap
                             if self_read else [])
                     stamp = time.strftime('%H:%M:%S')
                     if on_update:
+                        # per-carry rival counts (opponents seen on each carry) -> the picker
+                        # flags which lines are open vs contested so you lock the right one.
+                        carry_counts = {}
+                        for c in ledger.carries.values():
+                            if c:
+                                carry_counts[c.lower()] = carry_counts.get(c.lower(), 0) + 1
                         on_update({"ts": stamp, "event": "read", "data": data,
                                    "advice": recs, "positioning": positioning, "comp": last_comp,
                                    "shop": shop_view, "econ": (econ[0] if econ else None),
                                    "items": item_view, "bench": bench_view, "stage": stage_read,
                                    "contested": contested, "traits": traits_read,
                                    "gold": (self_read or {}).get("gold"),
-                                   "level": (self_read or {}).get("level")})
+                                   "level": (self_read or {}).get("level"),
+                                   "carry_counts": carry_counts})
                     elif recs:
                         print(f"[{stamp}]\n{coach.say(recs)}\n")
                     else:

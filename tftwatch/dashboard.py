@@ -22,7 +22,7 @@ load_dotenv()
 
 STATE = {"ts": None, "event": "idle", "data": None, "advice": [], "positioning": [], "comp": None,
          "shop": [], "econ": None, "items": [], "bench": [], "stage": None,
-         "contested": [], "traits": [], "gold": None, "level": None}
+         "contested": [], "traits": [], "gold": None, "level": None, "carry_counts": {}}
 
 # Live control shared with the watcher thread. The comp picker in the UI writes comp_key
 # here; the watcher reads it each loop and locks that line (None = auto-detect from traits).
@@ -117,13 +117,31 @@ def state():
     return jsonify(STATE)
 
 
+_TIER_ORDER = {"S": 0, "A": 1, "A (Double Up)": 1, "B": 2, "C": 3}
+
+
 @app.route("/comps")
 def comps():
-    """The list for the comp picker: your declarable lines, tier-sorted, + Auto-detect."""
-    items = sorted(({"key": k, "name": v.get("name"), "carry": v.get("carry"),
-                     "playstyle": v.get("playstyle")} for k, v in compguide.COMPS.items()),
-                   key=lambda c: (c["name"] or ""))
-    return jsonify({"comps": items, "current": CONTROL.get("comp_key")})
+    """The comp picker list — contest-aware so you lock an OPEN line, not a contested one.
+
+    Each comp is flagged with how many opponents we've seen on its carry (rivals) and its
+    tier. Sorted OPEN-and-strong first. `recommended` is the short-list of open, top-tier
+    lines to consider while you're still flexing."""
+    counts = STATE.get("carry_counts") or {}
+    items = []
+    for k, v in compguide.COMPS.items():
+        carry = (v.get("carry") or "")
+        rivals = counts.get(carry.lower(), 0)
+        items.append({"key": k, "name": v.get("name"), "carry": carry,
+                      "playstyle": v.get("playstyle"), "tier": v.get("tier"),
+                      "rivals": rivals, "open": rivals == 0})
+    # open + high tier first; then by rivals asc, tier, name
+    items.sort(key=lambda c: (c["rivals"], _TIER_ORDER.get(c["tier"], 9), c["name"] or ""))
+    contested = [c.lower() for c in (STATE.get("contested") or [])]
+    recommended = [c["name"] for c in items
+                   if c["open"] and _TIER_ORDER.get(c["tier"], 9) <= 1][:4]
+    return jsonify({"comps": items, "current": CONTROL.get("comp_key"),
+                    "recommended": recommended, "contested": contested})
 
 
 @app.route("/set-comp")
@@ -253,6 +271,8 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .compcard{background:#23242a;border:1px solid #3a3a44;}
 #comppick{background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:8px;
   padding:6px 10px;font:13px "Segoe UI",system-ui,sans-serif;cursor:pointer;max-width:60%;}
+.reco{font-size:13px;color:var(--blue);margin:0 0 10px;}
+.reco b{color:#d9bcd9;}
 .compname{font-size:22px;font-weight:700;color:#e7d6e7;}
 .compname .ps{font-size:12px;font-weight:600;color:var(--mut);margin-left:8px;text-transform:uppercase;letter-spacing:.05em;}
 .compsub{font-size:13px;color:var(--mut);margin:3px 0 11px;}
@@ -298,6 +318,7 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
     <h2 style="margin:0">Your comp · what you're building</h2>
     <select id="comppick" title="Lock your line so the coach stops guessing"><option value="">Auto-detect</option></select>
   </div>
+  <div id="reco" class="reco"></div>
   <div id="comp"><div class="empty">No comp locked yet — pick your line above, or Coach Roland will commit to one once your board is clear.</div></div></div>
 
 <div class="card"><h2>Your shop <span id="shopmeta" class="shopmeta"></span></h2>
@@ -464,14 +485,29 @@ function render(s){
   var pos=document.getElementById("pos");
   if(s.positioning&&s.positioning.length){pos.innerHTML=s.positioning.map(recCard).join("");}
 }
+function compLabel(c){
+  var flag = c.open ? '✓ open' : ('⚠ '+c.rivals+' on it');
+  return c.name+(c.tier?' · '+c.tier:'')+' · '+flag;
+}
 function loadComps(){
+  var sel=document.getElementById("comppick"); if(!sel) return;
+  if(document.activeElement===sel) return;   // don't rebuild while you're choosing
   fetch("/comps").then(function(r){return r.json();}).then(function(d){
-    var sel=document.getElementById("comppick"); if(!sel) return;
+    var keep=sel.value;
     sel.innerHTML='<option value="">Auto-detect (let it guess)</option>'+
       (d.comps||[]).map(function(c){
-        return '<option value="'+c.key+'">'+c.name+(c.playstyle?' · '+c.playstyle:'')+'</option>';}).join("");
-    if(d.current) sel.value=d.current;
-    sel.onchange=function(){ fetch("/set-comp?key="+encodeURIComponent(sel.value)); };
+        return '<option value="'+c.key+'">'+compLabel(c)+'</option>';}).join("");
+    sel.value=(d.current!=null?d.current:keep)||"";
+    sel.onchange=function(){ fetch("/set-comp?key="+encodeURIComponent(sel.value)).then(loadComps); };
+    var reco=document.getElementById("reco");
+    if(reco){
+      if(!d.current && d.recommended && d.recommended.length){
+        reco.innerHTML='Open & strong in your lobby right now: <b>'+d.recommended.join('</b>, <b>')+'</b>'
+          +' — pick one to lock it.';
+      } else if(d.current){
+        reco.innerHTML='';
+      } else { reco.innerHTML='<span style="color:var(--mut)">Reading the lobby — contest flags fill in as opponents commit.</span>'; }
+    }
   }).catch(function(){});
 }
 async function tick(){
@@ -479,7 +515,9 @@ async function tick(){
       document.getElementById("status").textContent="live";}
   catch(e){document.getElementById("status").textContent="offline";}
 }
-loadComps();tick();setInterval(tick,2000);
+var _compTick=0;
+loadComps();tick();
+setInterval(function(){ tick(); if((++_compTick % 3)===0) loadComps(); },2000);
 </script>
 </body></html>"""
 
