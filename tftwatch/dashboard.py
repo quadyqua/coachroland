@@ -304,8 +304,8 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 .slot.deny .sn{color:#e8b6ba;font-weight:700;}
 .slot.deny .sc{color:var(--danger);}
 .shopmeta{color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500;}
-.econ{margin-top:11px;background:#26262d;border:1px solid #3a3a44;border-radius:10px;padding:10px 12px;font-size:13px;}
-.econ b{color:#d8bcd6;}
+.econ{margin:0 0 12px;background:#2a2430;border:2px solid var(--acc);border-radius:10px;padding:11px 14px;font-size:14px;}
+.econ b{color:#e7d0e7;}
 @media(max-width:760px){.grid{grid-template-columns:1fr;}}
 </style></head><body>
 <div class="head">
@@ -314,26 +314,30 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
   <div class="live"><span class="dot"></span><span id="status">live</span></div>
 </div>
 
-<div class="card compcard">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
-    <h2 style="margin:0">Your comp · what you're building</h2>
+<!-- thin line-picker bar: lock your comp so the coach stops guessing -->
+<div class="card" style="padding:10px 14px;">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;">Your line</span>
     <select id="comppick" title="Lock your line so the coach stops guessing"><option value="">Auto-detect</option></select>
-  </div>
-  <div id="reco" class="reco"></div>
-  <div id="comp"><div class="empty">No comp locked yet — pick your line above, or Coach Roland will commit to one once your board is clear.</div></div></div>
+    <span id="reco" class="reco" style="margin:0;flex:1;min-width:180px;"></span>
+  </div></div>
+
+<!-- THE priority: live calls, with the roll/econ call promoted to the very top -->
+<div class="card"><h2>Coach says · do this now</h2>
+  <div id="econ"></div>
+  <div id="advice"><div class="empty">Waiting for the lobby…</div></div></div>
 
 <div class="card"><h2>Your shop <span id="shopmeta" class="shopmeta"></span></h2>
-  <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div>
-  <div id="econ"></div></div>
+  <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div></div>
+
+<div class="card compcard"><h2>What you're building</h2>
+  <div id="comp"><div class="empty">No comp locked yet — pick your line above, or Coach Roland will commit to one once your board is clear.</div></div></div>
 
 <div class="card" id="benchcard" style="display:none"><h2>Your bench <span class="shopmeta">&middot; recognized by portrait</span></h2>
   <div id="bench" class="shop"></div></div>
 
 <div class="card" id="itemcard" style="display:none"><h2>Items offered &middot; take for your carry</h2>
   <div id="items" class="shop"></div></div>
-
-<div class="card"><h2>Coach says</h2>
-  <div id="advice"><div class="empty">Waiting for the lobby…</div></div></div>
 
 <div class="grid">
   <div class="card"><h2>Lobby &middot; Double Up (4 teams)</h2><div id="lobby"><div class="empty">—</div></div></div>
