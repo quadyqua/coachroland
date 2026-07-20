@@ -224,8 +224,15 @@ INDEX_HTML = """<!doctype html><html><head><meta charset="utf-8">
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 "Segoe UI",system-ui,sans-serif;padding:18px;}
 .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .brand{display:flex;align-items:center;gap:11px;}
-.badge{width:38px;height:38px;border-radius:50%;background:var(--abg);color:var(--acc);
-display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;}
+.badge{width:46px;height:46px;border-radius:50%;overflow:hidden;flex:none;background:#7ec8e3;}
+.rface svg{width:100%;height:100%;display:block;}
+/* Coach says as speech from Roland: his face beside a stack of speech bubbles. */
+.says{display:flex;gap:13px;align-items:flex-start;}
+.saysface{width:56px;height:56px;border-radius:50%;overflow:hidden;flex:none;margin-top:2px;background:#7ec8e3;}
+.saysbody{flex:1;min-width:0;}
+.saysbody .rec{position:relative;}
+.saysbody .rec::before{content:"";position:absolute;left:-9px;top:16px;width:0;height:0;
+  border:6px solid transparent;border-right-color:var(--panel2);}
 .brand h1{margin:0;font-size:19px;font-weight:600;}
 .brand p{margin:0;font-size:12px;color:var(--mut);}
 .live{font-size:12px;color:var(--acc);display:flex;align-items:center;gap:6px;}
@@ -309,7 +316,7 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
 @media(max-width:760px){.grid{grid-template-columns:1fr;}}
 </style></head><body>
 <div class="head">
-  <div class="brand"><div class="badge">CR</div>
+  <div class="brand"><div class="badge rface"></div>
     <div><h1>Coach Roland</h1><p id="sub">connecting…</p></div></div>
   <div class="live"><span class="dot"></span><span id="status">live</span></div>
 </div>
@@ -323,9 +330,14 @@ display:flex;align-items:center;justify-content:center;font-weight:700;font-size
   </div></div>
 
 <!-- THE priority: live calls, with the roll/econ call promoted to the very top -->
-<div class="card"><h2>Coach says · do this now</h2>
-  <div id="econ"></div>
-  <div id="advice"><div class="empty">Waiting for the lobby…</div></div></div>
+<div class="card"><h2>Coach Roland says · do this now</h2>
+  <div class="says">
+    <div class="rface saysface"></div>
+    <div class="saysbody">
+      <div id="econ"></div>
+      <div id="advice"><div class="empty">Righto — waiting for the lobby…</div></div>
+    </div>
+  </div></div>
 
 <div class="card"><h2>Your shop <span id="shopmeta" class="shopmeta"></span></h2>
   <div id="shop" class="shop"><div class="empty">No shop read — run with --shop.</div></div></div>
@@ -366,6 +378,28 @@ function tickTimers(){
   });
 }
 setInterval(tickTimers,1000);
+
+// Coach Roland — a hand-drawn cartoon (blonde Aussie surfer, sunnies up top). Inline SVG so
+// the dashboard stays fully self-contained (no external images).
+var AVATAR='<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'
++'<defs><clipPath id="cc"><circle cx="50" cy="50" r="50"/></clipPath></defs>'
++'<g clip-path="url(#cc)">'
++'<rect width="100" height="100" fill="#7ec8e3"/><rect y="74" width="100" height="26" fill="#f4dca6"/>'
++'<rect x="33" y="82" width="34" height="18" rx="7" fill="#2a9d8f"/>'
++'<circle cx="26" cy="52" r="6" fill="#e6a86e"/><circle cx="74" cy="52" r="6" fill="#e6a86e"/>'
++'<ellipse cx="50" cy="52" rx="24" ry="26" fill="#eeb37e"/>'
++'<path d="M24 46 Q22 22 50 20 Q78 22 76 46 Q70 33 60 32 Q66 40 61 45 Q54 33 46 45 Q47 35 40 34 Q30 37 24 46Z" fill="#f2c545"/>'
++'<path d="M50 20 Q66 21 74 40 Q70 30 60 30 Q54 24 50 24Z" fill="#ffd96b"/>'
++'<path d="M36 46 Q41 43 46 46" stroke="#cf9a2a" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
++'<path d="M54 46 Q59 43 64 46" stroke="#cf9a2a" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
++'<circle cx="41" cy="52" r="3.4" fill="#39506b"/><circle cx="59" cy="52" r="3.4" fill="#39506b"/>'
++'<circle cx="42.2" cy="51" r="1.1" fill="#fff"/><circle cx="60.2" cy="51" r="1.1" fill="#fff"/>'
++'<circle cx="36" cy="60" r="4" fill="#f08a6e" opacity=".45"/><circle cx="64" cy="60" r="4" fill="#f08a6e" opacity=".45"/>'
++'<path d="M38 62 Q50 74 62 62 Q50 68 38 62Z" fill="#fff"/>'
++'<path d="M38 62 Q50 74 62 62" stroke="#8a4634" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
++'<g fill="#26303b"><rect x="30" y="29" width="16" height="9" rx="4"/><rect x="54" y="29" width="16" height="9" rx="4"/><rect x="45" y="32" width="10" height="2.4"/></g>'
++'</g><circle cx="50" cy="50" r="49" fill="none" stroke="#3a3a44" stroke-width="2"/></svg>';
+function paintFaces(){ document.querySelectorAll('.rface').forEach(function(e){ if(!e.innerHTML) e.innerHTML=AVATAR; }); }
 
 function recCard(r){
   var sev = r.severity || "info";
@@ -471,7 +505,7 @@ function render(s){
   var advice=(s.advice||[]).filter(function(a){return (a.kind||'live')!=='plan';})
     .slice().sort(function(a,b){return (b.priority||0)-(a.priority||0);});
   adv.innerHTML=advice.length?advice.map(recCard).join("")
-    :'<div class="empty">No new threats — hold steady.</div>';
+    :'<div class="empty">All good, mate — hold steady and play your board.</div>';
 
   var lob=document.getElementById("lobby");
   var players=(s.data&&s.data.players)||[];
@@ -521,7 +555,7 @@ async function tick(){
   catch(e){document.getElementById("status").textContent="offline";}
 }
 var _compTick=0;
-loadComps();tick();
+paintFaces();loadComps();tick();
 setInterval(function(){ tick(); if((++_compTick % 3)===0) loadComps(); },2000);
 </script>
 </body></html>"""
