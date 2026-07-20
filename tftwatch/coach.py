@@ -1020,8 +1020,9 @@ class CoachRoland:
             "Slam your items now — don't sit on components",
             f"You won't have {carry} yet, but holding loose components bleeds you out. Combine them toward "
             f"{carry}'s build ({item_txt}) and slam them on a strong body you already have ({early}) to win "
-            f"fights now. When you hit {carry}, sell/move to shift the items over — you never lose them, so "
-            f"there's no risk. (Put AD items on an AD unit, AP on AP.)",
+            f"fights now. You NEVER lose items — selling a unit returns them, and a Magnetic Remover pulls "
+            f"them off without selling — so slam on whoever helps most and move them onto {carry} later. "
+            f"Match AD/AP if it's easy, but never sit on a component waiting for the perfect unit.",
             "buy")]
 
     # ---- formatting ----------------------------------------------------------
